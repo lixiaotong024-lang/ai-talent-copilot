@@ -50,7 +50,7 @@ export function RadarChart({ scores, size = 260 }: RadarChartProps) {
             key={ratio}
             points={pts}
             fill="none"
-            stroke="rgba(148,163,184,0.14)"
+            stroke="rgb(var(--fg) / 0.15)"
             strokeWidth={1}
           />
         )
@@ -66,7 +66,7 @@ export function RadarChart({ scores, size = 260 }: RadarChartProps) {
             y1={CENTER}
             x2={p.x}
             y2={p.y}
-            stroke="rgba(148,163,184,0.12)"
+            stroke="rgb(var(--fg) / 0.12)"
             strokeWidth={1}
           />
         )
@@ -75,13 +75,13 @@ export function RadarChart({ scores, size = 260 }: RadarChartProps) {
       {/* 数据多边形 */}
       <polygon
         points={polygon}
-        fill="rgba(59,130,246,0.18)"
-        stroke="#3b82f6"
+        fill="rgb(var(--brand) / 0.18)"
+        stroke="rgb(var(--brand))"
         strokeWidth={2}
-        style={{ filter: 'drop-shadow(0 0 8px rgba(59,130,246,0.35))' }}
+        style={{ filter: 'drop-shadow(0 0 8px rgb(var(--brand) / 0.35))' }}
       />
       {dataPoints.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3.2} fill="#60a5fa" />
+        <circle key={i} cx={p.x} cy={p.y} r={3.2} fill="rgb(var(--brand-strong))" />
       ))}
 
       {/* 标签 + 分值 */}
@@ -96,7 +96,7 @@ export function RadarChart({ scores, size = 260 }: RadarChartProps) {
               x={labelPos.x}
               y={labelPos.y - 4}
               textAnchor={anchor}
-              className="fill-slate-300 text-[10px] font-medium"
+              className="fill-fg-soft text-[10px] font-medium"
             >
               {s.label.length > 7 ? `${s.label.slice(0, 7)}…` : s.label}
             </text>
@@ -104,7 +104,7 @@ export function RadarChart({ scores, size = 260 }: RadarChartProps) {
               x={labelPos.x}
               y={labelPos.y + 9}
               textAnchor={anchor}
-              className="fill-blue-400 text-[10px] font-semibold"
+              className="fill-brand text-[10px] font-semibold"
             >
               {s.score}
             </text>

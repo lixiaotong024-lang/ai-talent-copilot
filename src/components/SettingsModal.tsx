@@ -72,23 +72,23 @@ export function SettingsModal({
         onClick={onClose}
       />
       <div className="panel relative w-full max-w-lg animate-fade-up overflow-hidden bg-ink-900/95 p-0">
-        <div className="flex items-start justify-between border-b border-white/[0.06] px-6 py-4">
+        <div className="flex items-start justify-between border-b border-line px-6 py-4">
           <div>
             <h2
               id="settings-title"
-              className="flex items-center gap-2 text-base font-semibold text-white"
+              className="flex items-center gap-2 text-base font-semibold text-fg"
             >
-              <KeyRound className="h-5 w-5 text-blue-400" />
+              <KeyRound className="h-5 w-5 text-brand" />
               大模型 API 配置
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-fg-faint">
               所有凭证仅保存在当前浏览器 localStorage，请求由浏览器直连服务商
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="rounded-lg p-1.5 text-fg-faint transition hover:bg-fg/5 hover:text-fg"
             aria-label="关闭"
           >
             <X className="h-5 w-5" />
@@ -97,7 +97,7 @@ export function SettingsModal({
 
         <div className="space-y-5 px-6 py-5">
           {/* 服务商切换 */}
-          <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-ink-950/60 p-1">
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-line bg-ink-950/60 p-1">
             {PROVIDER_ORDER.map((id) => {
               const active = id === providerId
               const configured = Boolean(draft.configs[id].apiKey.trim())
@@ -111,15 +111,15 @@ export function SettingsModal({
                   }}
                   className={`relative rounded-lg px-3 py-2 text-xs font-medium transition ${
                     active
-                      ? 'bg-blue-600/90 text-white shadow'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-fg-faint hover:text-fg'
                   }`}
                 >
                   {PROVIDERS[id].label}
                   {configured && (
                     <span
                       className={`absolute right-2 top-2 h-1.5 w-1.5 rounded-full ${
-                        active ? 'bg-white' : 'bg-emerald-400'
+                        active ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-400'
                       }`}
                     />
                   )}
@@ -130,20 +130,20 @@ export function SettingsModal({
 
           {providerId === 'demo' ? (
             <div className="space-y-3">
-              <div className="flex items-start gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] px-4 py-4">
-                <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-                <div className="text-xs leading-relaxed text-emerald-100/85">
-                  <p className="mb-1 text-sm font-semibold text-emerald-200">
+              <div className="flex items-start gap-3 rounded-xl border border-emerald-600/25 bg-emerald-600/[0.07] px-4 py-4 dark:border-emerald-500/25 dark:bg-emerald-500/[0.07]">
+                <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400" />
+                <div className="text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-100/85">
+                  <p className="mb-1 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
                     免费体验模式已就绪
                   </p>
                   无需注册、无需 API Key、不产生任何费用。点击「保存配置」后，
                   在左侧粘贴任意 JD 与简历（或加载示例数据），即可生成完整的仿真评估报告。
                 </div>
               </div>
-              <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-xs leading-relaxed text-slate-400">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+              <div className="flex items-start gap-3 rounded-xl border border-line bg-fg/[0.03] px-4 py-3.5 text-xs leading-relaxed text-fg-soft">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <div>
-                  <p className="mb-1 font-medium text-slate-300">实现方式</p>
+                  <p className="mb-1 font-medium text-fg">实现方式</p>
                   评估由浏览器内置的本地启发式引擎根据 JD↔简历的技能词覆盖度、
                   学历/论文/开源/协作/抗压等经历信号即时生成，全程不发送网络请求。
                   体验真实 AI 分析深度时，切换到上方 DeepSeek / OpenAI / Kimi
@@ -157,7 +157,7 @@ export function SettingsModal({
           <div>
             <label className="field-label mb-2" htmlFor="api-key">
               API Key
-              <span className="text-slate-600">· 仅本地存储，不上传任何服务器</span>
+              <span className="text-fg-faint">· 仅本地存储，不上传任何服务器</span>
             </label>
             <div className="relative">
               <input
@@ -173,7 +173,7 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 transition hover:bg-white/5 hover:text-slate-200"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-fg-faint transition hover:bg-fg/5 hover:text-fg"
                 aria-label={showKey ? '隐藏 Key' : '显示 Key'}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -185,7 +185,7 @@ export function SettingsModal({
           <div>
             <label className="field-label mb-2" htmlFor="model-name">
               模型名称
-              <span className="text-slate-600">
+              <span className="text-fg-faint">
                 · 留空使用默认 {meta.defaultModel}
               </span>
             </label>
@@ -203,7 +203,7 @@ export function SettingsModal({
           <div>
             <label className="field-label mb-2" htmlFor="base-url">
               接口 Base URL（可选）
-              <span className="text-slate-600">· 遇到 CORS 限制时可填中转地址</span>
+              <span className="text-fg-faint">· 遇到 CORS 限制时可填中转地址</span>
             </label>
             <input
               id="base-url"
@@ -215,12 +215,12 @@ export function SettingsModal({
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-faint">
             <a
               href={meta.keyUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1 text-blue-400 transition hover:text-blue-300"
+              className="inline-flex items-center gap-1 text-brand transition hover:text-brand-strong"
             >
               获取 API Key <ExternalLink className="h-3 w-3" />
             </a>
@@ -228,7 +228,7 @@ export function SettingsModal({
               href={meta.docsUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1 text-blue-400 transition hover:text-blue-300"
+              className="inline-flex items-center gap-1 text-brand transition hover:text-brand-strong"
             >
               接口文档 <ExternalLink className="h-3 w-3" />
             </a>
@@ -236,8 +236,8 @@ export function SettingsModal({
             </>
           )}
 
-          <div className="flex items-start gap-2.5 rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-3.5 py-3 text-xs leading-relaxed text-blue-200/80">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+          <div className="flex items-start gap-2.5 rounded-xl border border-brand/20 bg-brand/[0.07] px-3.5 py-3 text-xs leading-relaxed text-fg-soft">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
             <span>
               本应用为纯前端应用，API Key 通过浏览器 localStorage
               保存在你的设备上，刷新页面不会丢失；清除浏览器数据或在系统设置中删除即可完全移除。
@@ -245,7 +245,7 @@ export function SettingsModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-6 py-4">
           <button type="button" className="btn-ghost" onClick={onClose}>
             取消
           </button>

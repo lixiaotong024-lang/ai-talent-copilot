@@ -86,15 +86,15 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen">
-      {/* 背景装饰 */}
+      {/* 背景装饰：低饱和赤陶光晕 + 细网格 */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 left-1/4 h-[420px] w-[620px] rounded-full bg-blue-600/[0.13] blur-[120px]" />
-        <div className="absolute -right-32 top-1/3 h-[380px] w-[520px] rounded-full bg-indigo-600/[0.10] blur-[120px]" />
+        <div className="absolute -top-40 left-1/4 h-[420px] w-[620px] rounded-full bg-brand/[0.10] blur-[120px] dark:bg-brand/[0.07]" />
+        <div className="absolute -right-32 top-1/3 h-[380px] w-[520px] rounded-full bg-fg/[0.05] blur-[120px] dark:bg-fg/[0.04]" />
         <div
-          className="absolute inset-0 opacity-[0.35]"
+          className="absolute inset-0 opacity-[0.5] dark:opacity-[0.3]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px)',
+              'linear-gradient(rgb(var(--fg) / 0.045) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--fg) / 0.045) 1px, transparent 1px)',
             backgroundSize: '48px 48px',
             maskImage:
               'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
@@ -130,7 +130,7 @@ export default function App() {
           />
         </div>
 
-        <footer className="mt-10 flex flex-col items-center gap-1 border-t border-white/[0.05] pt-6 pb-4 text-center text-[11px] text-slate-600">
+        <footer className="mt-10 flex flex-col items-center gap-1 border-t border-line/60 pt-6 pb-4 text-center text-[11px] text-fg-faint">
           <p>
             AI Talent Copilot · 评估结果由大模型生成，仅供 HR 初筛参考，关键信息请以面试与背调核实为准。
           </p>
@@ -140,7 +140,7 @@ export default function App() {
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-slate-500 underline-offset-2 transition hover:text-blue-400 hover:underline"
+              className="text-fg-faint underline-offset-2 transition hover:text-brand hover:underline"
             >
               GitHub
             </a>

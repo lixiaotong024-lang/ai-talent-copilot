@@ -2,8 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   清爽办公风主题变量（飞书蓝白体系）
+   亮色（白天 / 默认）：近白冷灰底 + 白色卡片 + 飞书蓝点缀
+   暗色（夜晚）：冷炭黑，跟随系统 prefers-color-scheme 自动切换
+   ============================================================ */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+
+  /* 表面层次 */
+  --ink-950: 245 246 247; /* 页面底 · #f5f6f7 */
+  --ink-900: 255 255 255; /* 卡片面 #ffffff */
+  --ink-850: 242 243 245; /* #f2f3f5 */
+  --ink-800: 232 234 237; /* #e8eaed */
+  --ink-700: 222 224 227; /* #dee0e3 */
+
+  /* 描边 */
+  --line: 222 224 227; /* #dee0e3 */
+  --line-soft: 238 239 241;
+
+  /* 文字（飞书中性墨色） */
+  --fg: 31 35 41; /* #1f2329 */
+  --fg-soft: 100 106 115; /* #646a73 */
+  --fg-faint: 143 149 158; /* #8f959e */
+
+  /* 品牌蓝（飞书 #3370ff） */
+  --brand: 51 112 255; /* #3370ff 链接 / 图标 / 描边 */
+  --brand-strong: 36 91 219; /* #245bdb 深色态 */
+  --brand-soft: 122 160 255; /* #7aa0ff 渐变浅端 */
+  --brand-btn: 51 112 255; /* 实心按钮底 */
+
+  --shadow-panel:
+    0 1px 2px rgb(31 35 41 / 0.05), 0 10px 28px -16px rgb(31 35 41 / 0.12);
+  --shadow-glow: 0 6px 20px -8px rgb(51 112 255 / 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* 表面层次 · 冷炭 */
+    --ink-950: 24 26 31; /* #181a1f */
+    --ink-900: 34 37 43; /* #22252b */
+    --ink-850: 40 43 50;
+    --ink-800: 48 51 59;
+    --ink-700: 60 64 72;
+
+    /* 描边 */
+    --line: 56 60 68;
+    --line-soft: 44 47 54;
+
+    /* 文字 */
+    --fg: 231 233 238;
+    --fg-soft: 158 163 173;
+    --fg-faint: 116 122 132;
+
+    /* 品牌蓝（暗色下提亮） */
+    --brand: 122 160 255; /* #7aa0ff */
+    --brand-strong: 164 188 255;
+    --brand-soft: 76 127 255;
+    --brand-btn: 51 112 255; /* 按钮保持品牌蓝 */
+
+    --shadow-panel:
+      0 1px 0 0 rgb(255 255 255 / 0.03) inset,
+      0 24px 60px -24px rgb(0 0 0 / 0.65);
+    --shadow-glow: 0 8px 30px -10px rgb(122 160 255 / 0.4);
+  }
 }
 
 html,
@@ -13,8 +77,11 @@ body,
 }
 
 body {
-  @apply bg-ink-950 text-slate-300 antialiased;
+  @apply bg-ink-950 text-fg-soft antialiased;
   font-feature-settings: 'cv11', 'ss01';
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* ---------- 滚动条 ---------- */
@@ -26,32 +93,32 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.18);
+  background: rgb(var(--fg) / 0.16);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.32);
+  background: rgb(var(--fg) / 0.3);
   background-clip: content-box;
 }
 
 ::selection {
-  background: rgba(59, 130, 246, 0.35);
-  color: #fff;
+  background: rgb(var(--brand) / 0.22);
+  color: rgb(var(--fg));
 }
 
 @layer components {
   .panel {
-    @apply rounded-2xl border border-white/[0.07] bg-white/[0.03] shadow-panel;
+    @apply rounded-2xl border border-line bg-ink-900 shadow-panel;
   }
 
   .field-label {
-    @apply flex items-center gap-2 text-[13px] font-medium text-slate-300;
+    @apply flex items-center gap-2 text-[13px] font-medium text-fg-soft;
   }
 
   .input-base {
-    @apply w-full rounded-xl border border-white/10 bg-ink-950/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20;
+    @apply w-full rounded-xl border border-line bg-ink-950/60 px-3.5 py-2.5 text-sm text-fg placeholder:text-fg-faint/70 outline-none transition focus:border-brand/60 focus:ring-2 focus:ring-brand/20;
   }
 
   textarea.input-base {
@@ -59,11 +126,11 @@ body {
   }
 
   .btn-primary {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl bg-brand-btn px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none;
   }
 
   .btn-ghost {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white active:scale-[0.99];
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl border border-line bg-fg/[0.04] px-4 py-2.5 text-sm font-medium text-fg-soft transition hover:border-fg/20 hover:bg-fg/[0.08] hover:text-fg active:scale-[0.99];
   }
 
   .chip {
@@ -71,12 +138,12 @@ body {
   }
 
   .skeleton {
-    @apply rounded-lg bg-white/[0.06];
+    @apply rounded-lg bg-fg/[0.07];
     background-image: linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0) 0,
-      rgba(255, 255, 255, 0.07) 50%,
-      rgba(255, 255, 255, 0) 100%
+      rgb(var(--fg) / 0) 0,
+      rgb(var(--fg) / 0.08) 50%,
+      rgb(var(--fg) / 0) 100%
     );
     background-size: 800px 100%;
     @apply animate-shimmer;

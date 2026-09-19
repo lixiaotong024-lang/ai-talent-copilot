@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'media',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -17,17 +18,33 @@ export default {
         mono: ['JetBrains Mono', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
+        // 语义化表面色：数值随系统亮 / 暗主题自动切换（见 index.css）
         ink: {
-          950: '#070b14',
-          900: '#0a0f1c',
-          850: '#0e1526',
-          800: '#131c31',
-          700: '#1c2740',
+          950: 'rgb(var(--ink-950) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
+          850: 'rgb(var(--ink-850) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+        },
+        line: {
+          DEFAULT: 'rgb(var(--line) / <alpha-value>)',
+          soft: 'rgb(var(--line-soft) / <alpha-value>)',
+        },
+        fg: {
+          DEFAULT: 'rgb(var(--fg) / <alpha-value>)',
+          soft: 'rgb(var(--fg-soft) / <alpha-value>)',
+          faint: 'rgb(var(--fg-faint) / <alpha-value>)',
+        },
+        brand: {
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          strong: 'rgb(var(--brand-strong) / <alpha-value>)',
+          soft: 'rgb(var(--brand-soft) / <alpha-value>)',
+          btn: 'rgb(var(--brand-btn) / <alpha-value>)',
         },
       },
       boxShadow: {
-        glow: '0 0 0 1px rgba(59,130,246,0.25), 0 8px 40px -8px rgba(59,130,246,0.45)',
-        panel: '0 1px 0 0 rgba(255,255,255,0.04) inset, 0 24px 60px -24px rgba(0,0,0,0.6)',
+        glow: 'var(--shadow-glow)',
+        panel: 'var(--shadow-panel)',
       },
       keyframes: {
         'fade-up': {

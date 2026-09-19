@@ -27,20 +27,20 @@ export function TopNav({ settings, onOpenSettings }: TopNavProps) {
   const providerLabel = PROVIDERS[settings.provider].label
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-line/70 bg-ink-950/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-glow">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand shadow-glow">
             <BrainCircuit className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-[15px] font-semibold tracking-tight text-white">
+            <h1 className="truncate text-[15px] font-semibold tracking-tight text-fg">
               AI Talent Copilot
-              <span className="ml-2 hidden text-xs font-normal text-slate-500 sm:inline">
+              <span className="ml-2 hidden text-xs font-normal text-fg-faint sm:inline">
                 Psychology &amp; Sourcing Edition
               </span>
             </h1>
-            <p className="hidden text-[11px] text-slate-500 md:block">
+            <p className="hidden text-[11px] text-fg-faint md:block">
               胜任力模型 × STAR 行为面试 · 大模型驱动的技术招聘初筛助手
             </p>
           </div>
@@ -48,12 +48,14 @@ export function TopNav({ settings, onOpenSettings }: TopNavProps) {
 
         <div className="flex shrink-0 items-center gap-2">
           <div
-            className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-400 sm:flex"
+            className="hidden items-center gap-2 rounded-full border border-line bg-fg/[0.04] px-3 py-1.5 text-xs text-fg-soft sm:flex"
             title={`当前服务商：${providerLabel}`}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                hasKey ? 'bg-emerald-400' : 'bg-amber-400'
+                hasKey
+                  ? 'bg-emerald-600 dark:bg-emerald-400'
+                  : 'bg-amber-600 dark:bg-amber-400'
               }`}
             />
             {isDemo
@@ -72,7 +74,7 @@ export function TopNav({ settings, onOpenSettings }: TopNavProps) {
             {hasKey ? (
               <Settings2 className="h-4 w-4" />
             ) : (
-              <KeyRound className="h-4 w-4 text-amber-400" />
+              <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             )}
             <span className="hidden text-sm sm:inline">API 设置</span>
           </button>
@@ -81,7 +83,7 @@ export function TopNav({ settings, onOpenSettings }: TopNavProps) {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-fg/[0.04] text-fg-soft transition hover:border-fg/20 hover:bg-fg/[0.08] hover:text-fg"
             title="GitHub"
           >
             <GithubIcon className="h-[18px] w-[18px]" />

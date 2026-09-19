@@ -41,43 +41,49 @@ const DOMAIN_STYLE: Record<
   { chip: string; bar: string; dot: string; text: string }
 > = {
   hardSkill: {
-    chip: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
-    bar: 'from-blue-400 to-indigo-500',
-    dot: 'bg-blue-400',
-    text: 'text-blue-300',
+    chip: 'border-blue-600/25 bg-blue-600/10 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
+    bar: 'from-blue-500 to-indigo-500 dark:from-blue-400 dark:to-indigo-500',
+    dot: 'bg-blue-500 dark:bg-blue-400',
+    text: 'text-blue-700 dark:text-blue-300',
   },
   cognitive: {
-    chip: 'border-violet-500/30 bg-violet-500/10 text-violet-300',
-    bar: 'from-violet-400 to-fuchsia-500',
-    dot: 'bg-violet-400',
-    text: 'text-violet-300',
+    chip: 'border-violet-600/25 bg-violet-600/10 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300',
+    bar: 'from-violet-500 to-fuchsia-500 dark:from-violet-400 dark:to-fuchsia-500',
+    dot: 'bg-violet-500 dark:bg-violet-400',
+    text: 'text-violet-700 dark:text-violet-300',
   },
   behavioral: {
-    chip: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    bar: 'from-emerald-400 to-teal-500',
-    dot: 'bg-emerald-400',
-    text: 'text-emerald-300',
+    chip: 'border-emerald-600/25 bg-emerald-600/10 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
+    bar: 'from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500',
+    dot: 'bg-emerald-500 dark:bg-emerald-400',
+    text: 'text-emerald-700 dark:text-emerald-300',
   },
   roleFit: {
-    chip: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-    bar: 'from-amber-400 to-orange-500',
-    dot: 'bg-amber-400',
-    text: 'text-amber-300',
+    chip: 'border-amber-600/25 bg-amber-600/10 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
+    bar: 'from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-500',
+    dot: 'bg-amber-500 dark:bg-amber-400',
+    text: 'text-amber-700 dark:text-amber-300',
   },
 }
 
 function bandColor(score: number) {
-  if (score >= 85) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-  if (score >= 70) return 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-  if (score >= 60) return 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-  return 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+  if (score >= 85)
+    return 'bg-emerald-600/10 text-emerald-700 border-emerald-600/25 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+  if (score >= 70)
+    return 'bg-blue-600/10 text-blue-700 border-blue-600/25 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30'
+  if (score >= 60)
+    return 'bg-amber-600/10 text-amber-700 border-amber-600/25 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30'
+  return 'bg-rose-600/10 text-rose-700 border-rose-600/25 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
 }
 
 function barColor(score: number) {
-  if (score >= 85) return 'from-emerald-400 to-teal-500'
-  if (score >= 70) return 'from-blue-400 to-indigo-500'
-  if (score >= 60) return 'from-amber-400 to-orange-500'
-  return 'from-rose-400 to-red-500'
+  if (score >= 85)
+    return 'from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500'
+  if (score >= 70)
+    return 'from-blue-500 to-indigo-500 dark:from-blue-400 dark:to-indigo-500'
+  if (score >= 60)
+    return 'from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-500'
+  return 'from-rose-500 to-red-600 dark:from-rose-400 dark:to-red-500'
 }
 
 function confidenceLabel(c: number) {
@@ -122,8 +128,8 @@ export function OutputDashboard({
       {/* 标题栏 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-white">胜任力评估结果</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-fg">胜任力评估结果</h2>
+          <p className="mt-0.5 text-xs text-fg-faint">
             证据抽取 → 胜任力映射 → 加权评分 · Gap 分析 · BEI/STAR 面试题
           </p>
         </div>
@@ -136,7 +142,7 @@ export function OutputDashboard({
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 已复制
               </>
             ) : (
@@ -161,11 +167,11 @@ export function OutputDashboard({
       {loading ? (
         <LoadingSkeleton />
       ) : error ? (
-        <div className="panel flex flex-col items-center gap-3 border-rose-500/20 bg-rose-500/[0.05] px-8 py-14 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15">
-            <AlertTriangle className="h-6 w-6 text-rose-400" />
+        <div className="panel flex flex-col items-center gap-3 border-rose-600/25 bg-rose-600/[0.05] px-8 py-14 text-center dark:border-rose-500/20 dark:bg-rose-500/[0.05]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-600/10 dark:bg-rose-500/15">
+            <AlertTriangle className="h-6 w-6 text-rose-600 dark:text-rose-400" />
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-rose-200/90">
+          <p className="max-w-md text-sm leading-relaxed text-rose-800/90 dark:text-rose-200/90">
             {error}
           </p>
           <button type="button" onClick={onRetry} className="btn-ghost mt-1 text-xs">
@@ -183,7 +189,7 @@ export function OutputDashboard({
               <div className="min-w-0 flex-1">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   {assessment.categoryLabel && (
-                    <span className="chip border border-sky-500/30 bg-sky-500/10 text-sky-300">
+                    <span className="chip border border-brand/30 bg-brand/10 text-brand">
                       {assessment.categoryLabel}
                     </span>
                   )}
@@ -191,18 +197,18 @@ export function OutputDashboard({
                     {assessment.band}
                   </span>
                 </div>
-                <p className="text-[15px] font-medium leading-relaxed text-slate-100">
+                <p className="text-[15px] font-medium leading-relaxed text-fg">
                   {assessment.summary}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-fg-faint">
                   <span>
                     服务商：
-                    <span className="text-slate-400">
+                    <span className="text-fg-soft">
                       {PROVIDERS[assessment.provider].label}
                     </span>
                   </span>
                   <span>
-                    模型：<span className="font-mono text-slate-400">{assessment.model}</span>
+                    模型：<span className="font-mono text-fg-soft">{assessment.model}</span>
                   </span>
                   <span>{formatTime(assessment.generatedAt)}</span>
                 </div>
@@ -210,7 +216,7 @@ export function OutputDashboard({
             </div>
 
             <div className="panel p-5" style={{ animationDelay: '60ms' }}>
-              <h3 className="mb-1 text-[13px] font-semibold text-white">
+              <h3 className="mb-1 text-[13px] font-semibold text-fg">
                 六维能力雷达
               </h3>
               <RadarChart scores={assessment.radar} />
@@ -218,15 +224,15 @@ export function OutputDashboard({
                 {assessment.radar.map((s) => (
                   <div key={s.id}>
                     <div className="mb-1 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">
+                      <span className="text-fg-soft">
                         {s.label}
-                        <span className="ml-1 text-slate-600">{s.enLabel}</span>
+                        <span className="ml-1 text-fg-faint">{s.enLabel}</span>
                       </span>
-                      <span className="font-semibold tabular-nums text-slate-200">
+                      <span className="font-semibold tabular-nums text-fg">
                         {s.score}
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-fg/10">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${barColor(s.score)}`}
                         style={{
@@ -243,10 +249,10 @@ export function OutputDashboard({
 
           {/* 四大胜任力域 */}
           <div className="panel p-5" style={{ animationDelay: '100ms' }}>
-            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <Scale className="h-5 w-5 text-blue-400" />
+            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <Scale className="h-5 w-5 text-brand" />
               四大胜任力域评分
-              <span className="text-xs font-normal text-slate-600">
+              <span className="text-xs font-normal text-fg-faint">
                 · 综合分 = Σ 域得分 × 固定权重
               </span>
             </h3>
@@ -256,14 +262,14 @@ export function OutputDashboard({
                 return (
                   <div
                     key={d.id}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4"
+                    className="rounded-xl border border-line bg-fg/[0.02] p-4"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="text-[13px] font-semibold text-slate-100">
+                        <span className="text-[13px] font-semibold text-fg">
                           {d.label}
                         </span>
-                        <span className="ml-2 text-[10px] text-slate-600">
+                        <span className="ml-2 text-[10px] text-fg-faint">
                           {d.enLabel}
                         </span>
                       </div>
@@ -271,12 +277,12 @@ export function OutputDashboard({
                         <span className={`chip border ${style.chip}`}>
                           权重 {d.weight}%
                         </span>
-                        <span className="text-lg font-bold tabular-nums text-white">
+                        <span className="text-lg font-bold tabular-nums text-fg">
                           {d.score}
                         </span>
                       </div>
                     </div>
-                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-fg/10">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${style.bar}`}
                         style={{
@@ -286,12 +292,12 @@ export function OutputDashboard({
                       />
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">
+                      <span className="text-fg-faint">
                         置信度 {Math.round(d.confidence * 100)}% ·{' '}
                         {confidenceLabel(d.confidence)}
                       </span>
                     </div>
-                    <p className="mt-2 border-t border-white/[0.05] pt-2 text-[12px] leading-relaxed text-slate-400">
+                    <p className="mt-2 border-t border-line/60 pt-2 text-[12px] leading-relaxed text-fg-soft">
                       {d.rationale}
                     </p>
                   </div>
@@ -302,14 +308,14 @@ export function OutputDashboard({
 
           {/* 行为证据链 */}
           <div className="panel p-5" style={{ animationDelay: '140ms' }}>
-            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <Link2 className="h-5 w-5 text-cyan-400" />
+            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <Link2 className="h-5 w-5 text-brand" />
               行为证据链 Evidence
-              <span className="text-xs font-normal text-slate-600">
+              <span className="text-xs font-normal text-fg-faint">
                 · 共 {assessment.evidence.length} 条 · 先取证、后打分
               </span>
             </h3>
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-fg-faint">
               每条证据均来自简历原文，并映射到具体胜任力；强度（0-5）与置信度共同决定评分。
             </p>
             {assessment.evidence.length > 0 ? (
@@ -319,20 +325,20 @@ export function OutputDashboard({
                   return (
                     <div
                       key={e.id}
-                      className="flex gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5"
+                      className="flex gap-3 rounded-xl border border-line bg-fg/[0.02] p-3.5"
                     >
-                      <span className="mt-0.5 shrink-0 font-mono text-[10px] font-semibold text-slate-600">
+                      <span className="mt-0.5 shrink-0 font-mono text-[10px] font-semibold text-fg-faint">
                         {e.id}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="rounded-lg border-l-2 border-cyan-500/40 bg-cyan-500/[0.06] px-3 py-2 text-[12px] leading-relaxed text-slate-300">
+                        <p className="rounded-lg border-l-2 border-brand/40 bg-brand/[0.06] px-3 py-2 text-[12px] leading-relaxed text-fg-soft">
                           “{e.rawText}”
                         </p>
                         <div className="mt-2.5 flex flex-wrap items-center gap-2">
                           <span className={`chip border ${style.chip}`}>
                             {e.competency}
                           </span>
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1 text-[10px] text-fg-faint">
                             强度
                             <span className="flex gap-0.5">
                               {[1, 2, 3, 4, 5].map((n) => (
@@ -341,14 +347,14 @@ export function OutputDashboard({
                                   className={`h-1.5 w-1.5 rounded-full ${
                                     n <= Math.round(e.strength)
                                       ? style.dot
-                                      : 'bg-white/10'
+                                      : 'bg-fg/15'
                                   }`}
                                 />
                               ))}
                             </span>
                             <span className="ml-0.5 tabular-nums">{e.strength}</span>
                           </span>
-                          <span className="text-[10px] tabular-nums text-slate-600">
+                          <span className="text-[10px] tabular-nums text-fg-faint">
                             置信 {Math.round(e.confidence * 100)}%
                           </span>
                         </div>
@@ -358,7 +364,7 @@ export function OutputDashboard({
                 })}
               </div>
             ) : (
-              <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-xs text-amber-200/80">
+              <p className="rounded-xl border border-amber-600/25 bg-amber-600/[0.07] px-4 py-3 text-xs text-amber-800/80 dark:border-amber-500/20 dark:bg-amber-500/[0.06] dark:text-amber-200/80">
                 模型未返回结构化证据（可能简历信息过少），本次结论置信度较低，请以面试验证为准。
               </p>
             )}
@@ -366,29 +372,29 @@ export function OutputDashboard({
 
           {/* 核心优势 */}
           <div className="panel p-5" style={{ animationDelay: '180ms' }}>
-            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <BadgeCheck className="h-5 w-5 text-emerald-400" />
+            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <BadgeCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               核心优势 Highlights
             </h3>
             <div className="grid gap-3 md:grid-cols-3">
               {assessment.highlights.map((item, i) => (
                 <div
                   key={i}
-                  className="flex flex-col rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 transition hover:bg-emerald-500/[0.09]"
+                  className="flex flex-col rounded-xl border border-emerald-600/20 bg-emerald-600/[0.05] p-4 transition hover:bg-emerald-600/[0.09] dark:border-emerald-500/20 dark:bg-emerald-500/[0.06] dark:hover:bg-emerald-500/[0.09]"
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-500/20 text-[11px] font-bold text-emerald-300">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-600/15 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                       {i + 1}
                     </span>
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-400/80">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-700/70 dark:text-emerald-400/80">
                       Strength
                     </span>
                   </div>
-                  <p className="text-[13px] leading-relaxed text-slate-200">
+                  <p className="text-[13px] leading-relaxed text-fg-soft">
                     {item.evidence}
                   </p>
                   {item.whyItMatters && (
-                    <p className="mt-2.5 border-t border-emerald-500/15 pt-2 text-[11px] leading-relaxed text-emerald-200/70">
+                    <p className="mt-2.5 border-t border-emerald-600/15 pt-2 text-[11px] leading-relaxed text-emerald-800/70 dark:border-emerald-500/15 dark:text-emerald-200/70">
                       <span className="font-medium">为何重要：</span>
                       {item.whyItMatters}
                     </p>
@@ -400,47 +406,47 @@ export function OutputDashboard({
 
           {/* Gap Analysis */}
           <div className="panel p-5" style={{ animationDelay: '220ms' }}>
-            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <Target className="h-5 w-5 text-indigo-400" />
+            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <Target className="h-5 w-5 text-brand" />
               Gap 分析：岗位要求 vs 候选人能力
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
-                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-emerald-300">
+              <div className="rounded-xl border border-emerald-600/20 bg-emerald-600/[0.05] p-4 dark:border-emerald-500/20 dark:bg-emerald-500/[0.05]">
+                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
                   <BadgeCheck className="h-4 w-4" />
                   优势 Strengths
                 </div>
                 <ul className="space-y-2">
                   {assessment.gapAnalysis.strengths.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-slate-300">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-fg-soft">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       {s}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
-                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-amber-300">
+              <div className="rounded-xl border border-amber-600/20 bg-amber-600/[0.05] p-4 dark:border-amber-500/20 dark:bg-amber-500/[0.05]">
+                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-amber-700 dark:text-amber-300">
                   <TrendingDown className="h-4 w-4" />
                   差距 Gaps
                 </div>
                 <ul className="space-y-2">
                   {assessment.gapAnalysis.gaps.map((g, i) => (
-                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-slate-300">
-                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-fg-soft">
+                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                       {g}
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
-            <div className="mt-4 flex gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.07] p-4">
-              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-indigo-300" />
+            <div className="mt-4 flex gap-3 rounded-xl border border-brand/25 bg-brand/[0.07] p-4">
+              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
               <div>
-                <div className="mb-1 text-[12px] font-semibold text-indigo-200">
+                <div className="mb-1 text-[12px] font-semibold text-brand">
                   Hiring Recommendation
                 </div>
-                <p className="text-[13px] leading-relaxed text-slate-200">
+                <p className="text-[13px] leading-relaxed text-fg-soft">
                   {assessment.gapAnalysis.recommendation}
                 </p>
               </div>
@@ -449,8 +455,8 @@ export function OutputDashboard({
 
           {/* 风险 */}
           <div className="panel p-5" style={{ animationDelay: '260ms' }}>
-            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <ShieldAlert className="h-5 w-5 text-amber-400" />
+            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               潜在风险与待核实疑点 Risks
             </h3>
             <div className="grid gap-3 md:grid-cols-2">
@@ -461,26 +467,26 @@ export function OutputDashboard({
                     key={i}
                     className={`flex gap-3 rounded-xl border p-4 ${
                       critical
-                        ? 'border-rose-500/25 bg-rose-500/[0.06]'
-                        : 'border-amber-500/25 bg-amber-500/[0.06]'
+                        ? 'border-rose-600/25 bg-rose-600/[0.06] dark:border-rose-500/25 dark:bg-rose-500/[0.06]'
+                        : 'border-amber-600/25 bg-amber-600/[0.06] dark:border-amber-500/25 dark:bg-amber-500/[0.06]'
                     }`}
                   >
                     {critical ? (
-                      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
+                      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
                     ) : (
-                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                     )}
                     <div>
                       <span
                         className={`chip mb-2 border ${
                           critical
-                            ? 'border-rose-500/30 bg-rose-500/15 text-rose-300'
-                            : 'border-amber-500/30 bg-amber-500/15 text-amber-300'
+                            ? 'border-rose-600/30 bg-rose-600/10 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300'
+                            : 'border-amber-600/30 bg-amber-600/10 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
                         }`}
                       >
                         {critical ? '重点核实' : '建议关注'}
                       </span>
-                      <p className="text-[13px] leading-relaxed text-slate-200">
+                      <p className="text-[13px] leading-relaxed text-fg-soft">
                         {risk.text}
                       </p>
                     </div>
@@ -492,11 +498,11 @@ export function OutputDashboard({
 
           {/* BEI/STAR 提问库 */}
           <div className="panel p-5" style={{ animationDelay: '300ms' }}>
-            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
-              <MessagesSquare className="h-5 w-5 text-blue-400" />
+            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-fg">
+              <MessagesSquare className="h-5 w-5 text-brand" />
               BEI 行为面试提问库
             </h3>
-            <p className="mb-5 text-xs text-slate-500">
+            <p className="mb-5 text-xs text-fg-faint">
               由胜任力证据缺口 / 高分项 / 适配风险触发，按 Situation → Task →
               Action → Result 结构引导回答
             </p>
@@ -506,29 +512,29 @@ export function OutputDashboard({
                 return (
                   <div
                     key={i}
-                    className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 pl-5 transition hover:border-blue-500/30"
+                    className="relative rounded-xl border border-line bg-fg/[0.02] p-4 pl-5 transition hover:border-brand/40"
                   >
-                    <span className="absolute left-0 top-4 h-[calc(100%-2rem)] w-[3px] rounded-r bg-gradient-to-b from-blue-500 to-indigo-500" />
+                    <span className="absolute left-0 top-4 h-[calc(100%-2rem)] w-[3px] rounded-r bg-gradient-to-b from-brand to-brand-strong" />
                     <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-300">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand/15 text-xs font-bold text-brand">
                         Q{i + 1}
                       </span>
                       <span className={`chip border ${style.chip}`}>
                         {q.competency}
                       </span>
                       {q.reason && (
-                        <span className="chip border border-white/10 bg-white/[0.04] text-slate-400">
+                        <span className="chip border border-line bg-fg/[0.04] text-fg-faint">
                           {q.reason}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-medium leading-relaxed text-slate-100">
+                    <p className="text-sm font-medium leading-relaxed text-fg">
                       {q.question}
                     </p>
-                    <div className="mt-3 flex gap-2 rounded-lg border border-white/[0.06] bg-ink-950/50 px-3 py-2.5">
-                      <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                      <p className="text-xs leading-relaxed text-slate-400">
-                        <span className="font-medium text-slate-300">追问建议：</span>
+                    <div className="mt-3 flex gap-2 rounded-lg border border-line/70 bg-ink-950/60 px-3 py-2.5">
+                      <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" />
+                      <p className="text-xs leading-relaxed text-fg-soft">
+                        <span className="font-medium text-fg">追问建议：</span>
                         {q.followUp}
                       </p>
                     </div>
@@ -547,15 +553,15 @@ function EmptyState() {
   return (
     <div className="panel flex flex-col items-center px-8 py-20 text-center">
       <div className="relative mb-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/[0.08]">
-          <FileSearch className="h-8 w-8 text-blue-400" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-brand/25 bg-brand/[0.08]">
+          <FileSearch className="h-8 w-8 text-brand" />
         </div>
-        <div className="absolute -inset-3 -z-10 rounded-full bg-blue-500/10 blur-2xl" />
+        <div className="absolute -inset-3 -z-10 rounded-full bg-brand/10 blur-2xl" />
       </div>
-      <h3 className="text-base font-semibold text-white">
+      <h3 className="text-base font-semibold text-fg">
         等待生成第一份胜任力评估报告
       </h3>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-fg-faint">
         在左侧粘贴 JD 与候选人简历（或上传 PDF / Word）后点击生成；引擎会先抽取行为证据，再映射胜任力并加权评分。
       </p>
       <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-4">
@@ -567,13 +573,13 @@ function EmptyState() {
         ].map((s) => (
           <div
             key={s.step}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-4"
+            className="rounded-xl border border-line bg-fg/[0.02] px-3 py-4"
           >
-            <s.icon className="mx-auto mb-1.5 h-4 w-4 text-blue-400/80" />
-            <div className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-sm font-bold text-transparent">
+            <s.icon className="mx-auto mb-1.5 h-4 w-4 text-brand/70" />
+            <div className="text-sm font-bold text-brand">
               {s.step}
             </div>
-            <div className="mt-1 text-xs text-slate-400">{s.text}</div>
+            <div className="mt-1 text-xs text-fg-faint">{s.text}</div>
           </div>
         ))}
       </div>
@@ -592,7 +598,7 @@ function LoadingSkeleton() {
             <div className="skeleton h-4 w-full" />
             <div className="skeleton h-4 w-11/12" />
             <div className="skeleton h-4 w-2/3" />
-            <div className="flex items-center gap-2 pt-2 text-xs text-blue-300/80">
+            <div className="flex items-center gap-2 pt-2 text-xs text-brand/80">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               正在抽取行为证据并映射胜任力…
             </div>
@@ -607,7 +613,7 @@ function LoadingSkeleton() {
         <div className="skeleton mb-4 h-4 w-40" />
         <div className="grid gap-3 lg:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="space-y-2 rounded-xl border border-white/[0.06] p-4">
+            <div key={i} className="space-y-2 rounded-xl border border-line/60 p-4">
               <div className="skeleton h-4 w-2/3" />
               <div className="skeleton h-1.5 w-full" />
               <div className="skeleton h-3 w-full" />
