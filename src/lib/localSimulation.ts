@@ -1,169 +1,34 @@
 import type {
   Assessment,
-  CompetencyDimension,
-  CompetencyScore,
-  DimensionFamily,
+  CompetencyEvidence,
+  DomainId,
+  DomainScore,
+  GapAnalysis,
+  Highlight,
+  RadarAxis,
+  RadarId,
   RiskItem,
   StarQuestion,
 } from '../types'
+import { RADAR_AXES } from './constants'
+import { INDUSTRY_WORDS, SKILL_LEXICON } from './skillLexicon'
 
 /**
- * 免费体验模式：完全在浏览器本地运行的启发式评估模拟器。
- * 不调用任何大模型接口，依据 JD↔简历的技能词覆盖度与经历信号生成仿真报告，
- * 覆盖技术、产品、运营、HR、市场、设计、通用职能等各类岗位。
+ * 免费体验模式：完全在浏览器本地运行的「胜任力引擎」启发式实现。
+ *
+ * 评估流水线（与真实大模型模式一致）：
+ *   JD 解析 → Evidence Extraction（行为证据抽取）
+ *   → Competency Mapping（映射到四域 / 六轴胜任力）
+ *   → Score = Evidence Strength × Confidence × JD Weight
+ *   → Gap Analysis → BEI/STAR 面试题
+ *
+ * 禁止仅凭关键词数量 / 学校 / 公司 / 年限打分：
+ * 技能词命中只是「弱证据」，必须叠加角色主导性、量化结果、交付事实后才提升强度。
  */
 
-interface SkillSignal {
-  aliases: string[]
-  label: string
-}
-
-// 跨岗位通用技能词库（中英文别名，命中任一即可）
-const SKILL_LEXICON: SkillSignal[] = [
-  // —— 技术研发 ——
-  { aliases: ['python'], label: 'Python' },
-  { aliases: ['c++'], label: 'C++' },
-  { aliases: ['java'], label: 'Java' },
-  { aliases: ['golang', 'go 语言'], label: 'Go' },
-  { aliases: ['pytorch'], label: 'PyTorch' },
-  { aliases: ['tensorflow'], label: 'TensorFlow' },
-  { aliases: ['transformer'], label: 'Transformer' },
-  { aliases: ['bert', 'roberta'], label: 'BERT 系预训练模型' },
-  { aliases: ['gpt', 'llama', 'qwen', 'chatglm', 'deepseek'], label: '主流大模型' },
-  { aliases: ['llm', '大模型', '大语言模型'], label: '大模型（LLM）' },
-  { aliases: ['nlp', '自然语言处理'], label: '自然语言处理（NLP）' },
-  { aliases: ['rag', '检索增强'], label: 'RAG 检索增强' },
-  { aliases: ['langchain'], label: 'LangChain' },
-  { aliases: ['milvus', 'faiss', '向量数据库'], label: '向量数据库' },
-  { aliases: ['sft', 'fine-tun', '微调'], label: '模型微调（SFT）' },
-  { aliases: ['lora', 'qlora'], label: 'LoRA 参数高效微调' },
-  { aliases: ['vllm', 'tensorrt', 'onnx', '推理部署', '模型服务化'], label: '推理加速与部署' },
-  { aliases: ['agent', '智能体'], label: 'Agent 智能体' },
-  { aliases: ['多模态'], label: '多模态' },
-  { aliases: ['意图识别'], label: '意图识别' },
-  { aliases: ['命名实体', 'ner'], label: '命名实体识别（NER）' },
-  { aliases: ['文本分类'], label: '文本分类' },
-  { aliases: ['语义匹配'], label: '语义匹配' },
-  { aliases: ['prompt', '提示词'], label: 'Prompt 工程' },
-  { aliases: ['huggingface'], label: 'HuggingFace 生态' },
-  { aliases: ['deepspeed'], label: 'DeepSpeed 分布式训练' },
-  { aliases: ['docker'], label: 'Docker' },
-  { aliases: ['kubernetes', 'k8s'], label: 'Kubernetes' },
-  { aliases: ['spark', 'flink', 'kafka'], label: '大数据计算' },
-  { aliases: ['前端', 'react', 'vue', 'typescript'], label: '前端开发' },
-  { aliases: ['后端', '微服务', 'spring'], label: '后端开发' },
-  { aliases: ['测试', '自动化测试', 'qa'], label: '测试与质量保障' },
-  { aliases: ['运维', 'devops', 'ci/cd'], label: '运维与 DevOps' },
-  // —— 产品 ——
-  { aliases: ['需求分析', '需求评审', '需求管理'], label: '需求分析与管理' },
-  { aliases: ['prd', '产品文档'], label: 'PRD 撰写' },
-  { aliases: ['产品规划', '路线图', 'roadmap'], label: '产品规划' },
-  { aliases: ['axure'], label: 'Axure 原型' },
-  { aliases: ['figma'], label: 'Figma' },
-  { aliases: ['用户调研', '用户访谈', '深度访谈'], label: '用户调研' },
-  { aliases: ['竞品分析'], label: '竞品分析' },
-  { aliases: ['用户画像', 'persona'], label: '用户画像' },
-  { aliases: ['a/b', 'ab 测试', 'ab测试', '对照实验'], label: 'A/B 实验' },
-  { aliases: ['北极星', '指标体系', '指标拆解'], label: '指标体系搭建' },
-  { aliases: ['saas'], label: 'SaaS 产品经验' },
-  { aliases: ['b 端', 'b端'], label: 'B 端产品' },
-  { aliases: ['c 端', 'c端'], label: 'C 端产品' },
-  { aliases: ['产品经理', '产品策划'], label: '产品策划' },
-  // —— 运营/市场 ——
-  { aliases: ['用户运营'], label: '用户运营' },
-  { aliases: ['内容运营'], label: '内容运营' },
-  { aliases: ['活动运营', '活动策划'], label: '活动运营' },
-  { aliases: ['社群运营', '社群'], label: '社群运营' },
-  { aliases: ['私域'], label: '私域运营' },
-  { aliases: ['新媒体运营', '新媒体'], label: '新媒体运营' },
-  { aliases: ['电商运营'], label: '电商运营' },
-  { aliases: ['增长黑客', '增长运营', '用户增长'], label: '增长运营' },
-  { aliases: ['拉新', '获客'], label: '拉新获客' },
-  { aliases: ['促活', '留存', '召回'], label: '促活与留存' },
-  { aliases: ['转化', '转化率'], label: '转化运营' },
-  { aliases: ['gmv'], label: 'GMV 经营' },
-  { aliases: ['dau', 'mau'], label: 'DAU/MAU 运营' },
-  { aliases: ['roi'], label: 'ROI 管理' },
-  { aliases: ['投放', '信息流', 'sem'], label: '付费投放' },
-  { aliases: ['裂变'], label: '裂变玩法' },
-  { aliases: ['sop'], label: '运营 SOP' },
-  { aliases: ['rfm', 'aarrr'], label: '用户分层模型（RFM/AARRR）' },
-  { aliases: ['公众号'], label: '公众号运营' },
-  { aliases: ['小红书'], label: '小红书运营' },
-  { aliases: ['抖音', '短视频'], label: '抖音/短视频' },
-  { aliases: ['视频号'], label: '视频号运营' },
-  { aliases: ['直播'], label: '直播运营' },
-  { aliases: ['文案', '选题'], label: '文案撰写' },
-  { aliases: ['kol', '达人'], label: 'KOL/达人合作' },
-  { aliases: ['会员运营', '复购'], label: '会员与复购运营' },
-  { aliases: ['scrm', '企业微信'], label: '企业微信 SCRM' },
-  { aliases: ['品牌'], label: '品牌营销' },
-  { aliases: ['公关', '舆情'], label: '公关传播' },
-  { aliases: ['seo'], label: 'SEO' },
-  { aliases: ['渠道'], label: '渠道管理' },
-  { aliases: ['商务拓展', 'bd'], label: '商务拓展（BD）' },
-  { aliases: ['大客户', 'ka '], label: '大客户销售' },
-  { aliases: ['mql', '销售线索', '线索'], label: '销售线索运营' },
-  { aliases: ['白皮书'], label: '白皮书/案例营销' },
-  { aliases: ['峰会', '展会', '行业活动'], label: '线下活动营销' },
-  { aliases: ['提案', '宣讲'], label: '客户提案宣讲' },
-  { aliases: ['谈判'], label: '商务谈判' },
-  { aliases: ['客户成功'], label: '客户成功' },
-  // —— HR ——
-  { aliases: ['招聘'], label: '招聘配置' },
-  { aliases: ['培训'], label: '培训发展' },
-  { aliases: ['绩效'], label: '绩效管理' },
-  { aliases: ['薪酬'], label: '薪酬福利' },
-  { aliases: ['hrbp'], label: 'HRBP' },
-  { aliases: ['组织发展', 'od '], label: '组织发展（OD）' },
-  { aliases: ['员工关系'], label: '员工关系' },
-  { aliases: ['人才盘点'], label: '人才盘点' },
-  { aliases: ['雇主品牌'], label: '雇主品牌' },
-  { aliases: ['劳动法'], label: '劳动法规' },
-  { aliases: ['猎头'], label: '猎头渠道管理' },
-  { aliases: ['内推'], label: '内推体系' },
-  { aliases: ['任职资格'], label: '任职资格体系' },
-  { aliases: ['胜任力模型', '胜任力'], label: '胜任力建模' },
-  { aliases: ['三支柱'], label: 'HR 三支柱' },
-  { aliases: ['校招'], label: '校园招聘' },
-  { aliases: ['人才测评', '测评'], label: '人才测评' },
-  { aliases: ['okr'], label: 'OKR 管理' },
-  { aliases: ['敬业度'], label: '员工敬业度' },
-  // —— 设计 ——
-  { aliases: ['ui 设计', 'ui设计'], label: 'UI 设计' },
-  { aliases: ['ux', '用户体验设计'], label: 'UX 用户体验设计' },
-  { aliases: ['交互设计'], label: '交互设计' },
-  { aliases: ['视觉设计'], label: '视觉设计' },
-  { aliases: ['平面设计'], label: '平面设计' },
-  { aliases: ['设计系统', '组件库', 'design token'], label: '设计系统/组件库' },
-  { aliases: ['可用性测试'], label: '可用性测试' },
-  { aliases: ['信息架构'], label: '信息架构' },
-  { aliases: ['作品集'], label: '作品集' },
-  { aliases: ['动效', 'after effects'], label: '动效设计' },
-  { aliases: ['photoshop'], label: 'Photoshop' },
-  { aliases: ['illustrator'], label: 'Illustrator' },
-  { aliases: ['sketch'], label: 'Sketch' },
-  { aliases: ['还原度'], label: '设计还原走查' },
-  // —— 通用职能/数据/协作工具 ——
-  { aliases: ['项目管理', 'pmo'], label: '项目管理' },
-  { aliases: ['pmp'], label: 'PMP 认证' },
-  { aliases: ['sql'], label: 'SQL 数据分析' },
-  { aliases: ['excel', '数据透视'], label: 'Excel 数据处理' },
-  { aliases: ['tableau', 'power bi', '帆软'], label: 'BI 报表工具' },
-  { aliases: ['ppt', 'powerpoint'], label: 'PPT 汇报' },
-  { aliases: ['供应商管理', '供应商'], label: '供应商管理' },
-  { aliases: ['合同'], label: '合同管理' },
-  { aliases: ['预算管理', '预算'], label: '预算管理' },
-  { aliases: ['风险'], label: '风险管理' },
-  { aliases: ['erp'], label: 'ERP 系统' },
-  { aliases: ['行政'], label: '行政管理' },
-  { aliases: ['财务'], label: '财务专业' },
-  { aliases: ['法务', '法律'], label: '法务合规' },
-  { aliases: ['供应链'], label: '供应链管理' },
-  { aliases: ['客户服务', '客服'], label: '客户服务' },
-]
-
-const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(n)))
+const clamp = (n: number, min = 0, max = 100) =>
+  Math.max(min, Math.min(max, Math.round(n)))
+const clamp01 = (n: number) => Math.max(0.45, Math.min(0.95, n))
 
 const has = (text: string, words: string[]) =>
   words.some((w) => text.includes(w.toLowerCase()))
@@ -178,44 +43,146 @@ function bandOf(score: number): string {
   return '暂不匹配'
 }
 
-interface FamilyContext {
-  coverage: number
-  matchedCount: number
-  requiredCount: number
-  matchedLabels: string[]
-  quantified: boolean
-  education: number
-  papers: number
-  openSource: number
-  certs: number
-  collab: number
-  resilience: number
-  data: number
-  userBusiness: number
-  logic: number
-  content: number
-  empathy: number
-  principle: number
-  ux: number
-  aesthetics: number
-  learningExtra: number
+/** 量化结果信号（Result） */
+const QUANT_RE =
+  /\d+(\.\d+)?\s*(%|％|个百分点|倍|万|百万|亿|分|天|周|个月)|f1|auc|准确率|召回率|延迟|p99|gmv|dau|mau|roi|arr|nps|留存率|转化率|渗透率|命中率|增长|提升|降低|缩短/i
+
+/** 主导角色信号（Ownership） */
+const OWNER_WORDS = [
+  '独立', '主导', '牵头', '主动', '全权', '一手', 'owner', '负责人',
+  '带领', '带队', '带过', 'mentor', '0-1', '0 到 1', '从0', '从零',
+]
+/** 交付事实信号 */
+const DELIVERY_WORDS = [
+  '上线', '落地', '交付', '投产', '发布', '部署', '完成', '建成',
+  '搭建', '建设', '打造', '重构', '推行', '推广',
+]
+/** 专业深度信号 */
+const DEPTH_WORDS = [
+  '架构', '核心模块', '技术方案', '自研', '深度优化', '性能优化',
+  '底层', '原理', '设计并', '方案设计', '体系设计', '模型设计',
+]
+
+interface Detector {
+  competency: string
+  domain: DomainId
+  axis?: RadarId
+  words: string[]
+  /** 命中时的基础证据强度 0-5 */
+  base: number
 }
 
-interface FamilyResult {
-  score: number
-  evidence: string
+/** 行为证据检测器：简历子句 → 胜任力映射 */
+const DETECTORS: Detector[] = [
+  {
+    competency: '专业深度',
+    domain: 'hardSkill',
+    axis: 'depth',
+    words: DEPTH_WORDS,
+    base: 3.8,
+  },
+  {
+    competency: '执行交付（Execution）',
+    domain: 'behavioral',
+    axis: 'execution',
+    words: DELIVERY_WORDS,
+    base: 3.4,
+  },
+  {
+    competency: '问题解决（Problem Solving）',
+    domain: 'cognitive',
+    axis: 'problemSolving',
+    words: [
+      '解决', '攻克', '排查', '定位问题', '根因', '瓶颈', '优化',
+      '命中率', '准确率', '故障', '疑难', '性能提升', '降本增效',
+    ],
+    base: 3.6,
+  },
+  {
+    competency: 'Ownership（当责）',
+    domain: 'behavioral',
+    axis: 'execution',
+    words: OWNER_WORDS,
+    base: 3.7,
+  },
+  {
+    competency: '学习敏捷（Learning Agility）',
+    domain: 'cognitive',
+    axis: 'learning',
+    words: [
+      '快速学习', '自学', '两周', '2周', '短时间', '转型', '调研',
+      '快速掌握', '系统学习', '内部分享', '技术分享', '讲座', '输出文档',
+      '论文', '专利', '认证', '证书', '课程',
+    ],
+    base: 3.3,
+  },
+  {
+    competency: '协作与影响力（Collaboration）',
+    domain: 'behavioral',
+    axis: 'collaboration',
+    words: [
+      '跨部门', '跨团队', '跨职能', '协作', '协同', '协调', '拉通',
+      '对齐', '推动', '说服', '沟通', '汇报', '配合', '对接',
+    ],
+    base: 3.2,
+  },
+  {
+    competency: '创新变革（Innovation）',
+    domain: 'behavioral',
+    words: ['创新', '首创', '发明', '专利', '论文', '新方法', '新流程', '提出'],
+    base: 3.5,
+  },
+  {
+    competency: '专业广度（T 型迁移）',
+    domain: 'hardSkill',
+    axis: 'breadth',
+    words: ['全栈', '跨界', '兼具', '多套', '多种技术', '从前端到后端', '横向覆盖'],
+    base: 3.0,
+  },
+  {
+    competency: '模糊环境/创业适配',
+    domain: 'roleFit',
+    words: ['创业', 'startup', '不确定性', '模糊', '0-1', '0 到 1', '从0', '从零'],
+    base: 3.4,
+  },
+  {
+    competency: '规范化大团队适配',
+    domain: 'roleFit',
+    words: ['大厂', '流程规范', '大型团队', '百人', '千人'],
+    base: 3.0,
+  },
+]
+
+const WHY_MAP: Record<RadarId, string> = {
+  depth: '体现专业深度与复杂方案设计能力，是 Hard Skill 最直接的行为证据',
+  execution: '有明确交付事实与可量化结果，印证 Execution 与结果导向',
+  problemSolving: '从问题定位到指标改善形成闭环，体现 Problem Solving 能力',
+  learning: '短周期掌握新能力并产出成果，印证 Learning Agility 与知识迁移',
+  collaboration: '需要横向协调与推动才能完成，体现无授权影响力',
+  breadth: '能力横跨多个领域，具备 T 型人才的迁移与组合优势',
+}
+/** 把简历拆成可分析的行为子句（粗粒度，容忍格式混乱） */
+function splitClauses(cv: string): string[] {
+  return cv
+    .split(/\r?\n|；|;|。|•|·|①|②|③|④|⑤/)
+    .map((line) =>
+      line
+        .replace(/^\s*(?:[-*▪◦◆]|\d+[.、)）])\s*/, '')
+        .replace(/\s+/g, '')
+        .trim(),
+    )
+    .filter((c) => c.length >= 8 && c.length <= 160)
 }
 
 export function runLocalSimulation(
   jd: string,
   cv: string,
-  dimensions: CompetencyDimension[],
   categoryLabel = '目标岗位',
 ): Assessment {
   const jdText = jd.toLowerCase()
   const cvText = cv.toLowerCase()
 
-  /* ---------- 技能覆盖度 ---------- */
+  /* ============ Step 1：JD 解析 ============ */
   const required = SKILL_LEXICON.filter((s) =>
     s.aliases.some((a) => jdText.includes(a)),
   )
@@ -228,7 +195,13 @@ export function runLocalSimulation(
     .filter((s) => !matched.some((m) => m.label === s.label))
     .map((s) => s.label)
 
-  /* ---------- 通用经历信号 ---------- */
+  const yearReq = jd.match(/(\d+)\s*年(以上|及以上)?/)
+  const yearInCv = /(\d+)\s*年/.test(cv)
+
+  /* ============ Step 2：Evidence Extraction ============ */
+  const clauses = splitClauses(cv)
+
+  // 全文级背景信号（学历/论文/认证等只作认知域的辅助证据）
   const education = has(cvText, ['博士', 'phd', 'ph.d'])
     ? 3
     : has(cvText, ['硕士', '研究生', 'master'])
@@ -236,460 +209,487 @@ export function runLocalSimulation(
       : has(cvText, ['本科', '学士', 'bachelor'])
         ? 1
         : 0
-
   const papers = countHits(cvText, [
     ['acl', 'emnlp', 'neurips', 'icml', 'naacl', 'cvpr', 'aaai', 'ijcai', 'kdd', 'sigir', 'chi'],
-    ['论文', '发表', '一作', '二作', '长文'],
-  ])
-  const openSource = countHits(cvText, [
-    ['github', 'gitlab', '开源', 'open source'],
-    ['star', '维护者', 'committer', '贡献者'],
+    ['论文', '发表', '一作', '二作', '长文', '专利'],
   ])
   const certs = countHits(cvText, [
     ['pmp', 'cfa', 'cpa', '法律职业资格', '人力资源管理师', '认证', '证书'],
-    [' prince2', 'pmi', 'cfa', 'frm', 'acp'],
   ])
-  const learningExtra =
-    countHits(cvText, [['博客', '专栏', '知乎', '掘金', '技术分享', '讲座', '内部分享', '课程']]) +
-    countHits(cvText, [['获奖', '竞赛', '金奖', '一等奖', 'acm', 'kaggle', '奖学金'], ['gpa', '排名前', '专业前']])
-
-  const quantified =
-    /\d+(\.\d+)?\s*(%|％|个百分点|倍|万|百万|亿|分|天)|f1|auc|准确率|延迟|p99|gmv|dau|roi|arr|mql|nps|留存率|转化率|增长|提升|下降/i.test(
-      cv,
-    )
-
-  const collab = countHits(cvText, [
-    ['协作', '合作', '配合'],
-    ['跨部门', '跨职能', '横向', '对接'],
-    ['产品经理', '研发', '后端', '前端', '设计', '运营', '业务方', '销售'],
-    ['带领', '带队', '带过', 'mentor', '指导实习'],
-    ['推动', '牵头', '主导', '协调'],
-    ['沟通', '对齐', '共识'],
+  const learningExtra = countHits(cvText, [
+    ['博客', '专栏', '知乎', '掘金', '技术分享', '讲座', '内部分享'],
+    ['获奖', '竞赛', '金奖', '一等奖', 'acm', 'kaggle', '奖学金'],
+    ['gpa', '排名前', '专业前'],
   ])
 
-  const resilience = countHits(cvText, [
-    ['上线', '投产', '线上'],
-    ['攻关', '攻坚', '救火', '故障', '应急'],
-    ['高压', '加班', '高强度', '连续'],
-    ['deadline', '紧急', '赶工', '大促'],
-    ['快节奏', '不确定性', '0-1', '0 到 1', '从零'],
-    ['值班', 'oncall', '稳定性'],
-    ['被拒', '拒绝', '业绩压力', '出差', '改稿', '多项目并行'],
+  const industryHit = INDUSTRY_WORDS.filter(
+    (w) => jdText.includes(w) && cvText.includes(w),
+  )
+  const startupSig = countHits(cvText, [
+    ['创业', 'startup'],
+    ['0-1', '0 到 1', '从0', '从零'],
+    ['不确定性', '模糊'],
+  ])
+  const bigCorpSig = countHits(cvText, [
+    ['大厂', 'bat', '字节', '腾讯', '阿里', '美团', '华为', '京东'],
+    ['流程规范', '大型团队', '百人'],
   ])
 
-  const data = countHits(cvText, [
-    ['数据分析', '数据驱动', '数据敏感', '经营分析'],
-    ['看板', '指标', '报表', '仪表盘'],
-    ['a/b', 'ab ', '对照实验', '实验'],
-    ['复盘', '归因', '洞察'],
-    ['sql', 'excel', 'tableau', '神策', 'ga'],
-  ])
+  const rawEvidence: CompetencyEvidence[] = []
+  let quantClauses = 0
+  let ownerClauses = 0
+  let participateOnly = 0
 
-  const userBusiness = countHits(cvText, [
-    ['用户调研', '用户访谈', '用户画像', '用户洞察', '用户场景'],
-    ['商业', '收入', '营收', 'arr', 'gmv', '付费', '盈利'],
-    ['成本', '预算', '投入产出', 'roi'],
-    ['客户', '市场', '行业'],
-  ])
+  clauses.forEach((clause, idx) => {
+    const lower = clause.toLowerCase()
+    const quantified = QUANT_RE.test(clause)
+    const owner = has(lower, OWNER_WORDS)
+    if (quantified) quantClauses += 1
+    if (owner) ownerClauses += 1
+    if (clause.includes('参与') && !owner) participateOnly += 1
 
-  const logic = countHits(cvText, [
-    ['结构化', '拆解', '问题分析'],
-    ['方法论', '框架', '体系'],
-    ['优先级', '排期', '决策'],
-    ['复盘', '根因', '归因'],
-    ['prd', '需求分析', '流程设计'],
-  ])
-
-  const content = countHits(cvText, [
-    ['文案', '内容'],
-    ['策划', '活动'],
-    ['公众号', '小红书', '抖音', '视频号', '直播', '短视频'],
-    ['选题', '爆文', '10w', '阅读量'],
-    ['创意', '品牌', '传播'],
-  ])
-
-  const empathy = countHits(cvText, [
-    ['倾听', '共情', '同理心', '情绪'],
-    ['辅导', '教练', '带教', '关怀'],
-    ['员工关系', '员工沟通', '一对一'],
-    ['心理咨询', '疏导'],
-    ['访谈', '支持业务', '伙伴'],
-  ])
-
-  const principle = countHits(cvText, [
-    ['合规', '劳动法', '仲裁'],
-    ['保密', '敏感信息'],
-    ['制度', '原则', '底线'],
-    ['内控', '审计', '风险控制'],
-    ['规范', '红线'],
-  ])
-
-  const ux = countHits(cvText, [
-    ['可用性', '易用性'],
-    ['交互', '用户体验', '体验设计'],
-    ['信息架构'],
-    ['用户研究', '用研'],
-    ['走查', '还原度', '任务完成率'],
-  ])
-
-  const aesthetics = countHits(cvText, [
-    ['作品集'],
-    ['视觉', '审美'],
-    ['品牌', '风格'],
-    ['创意', '动效'],
-  ])
-
-  const ctx: FamilyContext = {
-    coverage,
-    matchedCount: matched.length,
-    requiredCount: required.length,
-    matchedLabels,
-    quantified,
-    education,
-    papers,
-    openSource,
-    certs,
-    collab,
-    resilience,
-    data,
-    userBusiness,
-    logic,
-    content,
-    empathy,
-    principle,
-    ux,
-    aesthetics,
-    learningExtra,
-  }
-
-  /* ---------- 各信号族评分器 ---------- */
-  const scorers: Record<DimensionFamily, (d: CompetencyDimension) => FamilyResult> = {
-    skill: () => ({
-      score: clamp(
-        50 + coverage * 38 + (quantified ? 5 : 0) + (matched.length >= 4 ? 4 : 0),
-      ),
-      evidence:
-        matchedLabels.length > 0
-          ? `简历覆盖 JD 要求中的 ${matched.length}/${ctx.requiredCount || '?'} 项关键能力：${matchedLabels.slice(0, 5).join('、')}${quantified ? '；且提供了量化业绩证据' : ''}`
-          : '简历中未明显体现 JD 列出的核心能力关键词，专业匹配证据不足',
-    }),
-    learning: () => {
-      const score = clamp(
-        55 +
-          (education - 1) * 5 +
-          papers * 7 +
-          openSource * 4 +
-          certs * 3 +
-          learningExtra * 3,
-      )
-      const parts: string[] = []
-      if (education === 3) parts.push('博士学历')
-      else if (education === 2) parts.push('硕士学历')
-      else if (education === 1) parts.push('本科学历')
-      if (papers) parts.push('有论文/研究产出')
-      if (certs) parts.push('持有岗位相关专业认证')
-      if (openSource) parts.push('有开源或公开作品')
-      if (learningExtra) parts.push('有竞赛获奖或公开分享沉淀')
-      return {
-        score,
-        evidence: parts.length ? parts.join('、') : '简历缺少学历之外的成长性证据（认证/作品/分享/获奖等）',
+    // 每个子句最多映射 2 个胜任力（参照 BEI 编码：一个行为可同时证明多项胜任力）
+    const hits: Detector[] = []
+    for (const d of DETECTORS) {
+      if (has(lower, d.words)) {
+        // 弱信号词（沟通/推动/完成等）需要量化或主导角色加持，避免噪声
+        const weakWord = d.base <= 3.4
+        if (weakWord && !quantified && !owner) continue
+        hits.push(d)
+        if (hits.length >= 2) break
       }
-    },
-    collab: () => ({
-      score: clamp(55 + ctx.collab * 7),
-      evidence:
-        ctx.collab > 0
-          ? `简历中出现 ${ctx.collab} 类协作信号（跨部门对接/牵头推动/带人/沟通对齐等）`
-          : '经历描述以个人产出为主，团队协作与横向影响的证据较少',
-    }),
-    resilience: () => ({
-      score: clamp(53 + ctx.resilience * 7.5),
-      evidence:
-        ctx.resilience > 0
-          ? `简历中出现 ${ctx.resilience} 类高压场景信号（上线保障/攻关/紧急任务/高强度并行等）`
-          : '缺少高压目标、紧急任务或不确定性环境的经历证据',
-    }),
-    userBusiness: () => ({
-      score: clamp(52 + ctx.userBusiness * 7 + (ctx.quantified ? 5 : 0)),
-      evidence:
-        ctx.userBusiness > 0
-          ? `具备 ${ctx.userBusiness} 类用户/商业信号（用户研究、客户场景、收入成本或预算视角）`
-          : '简历偏执行视角，缺少用户洞察与商业价值判断的直接证据',
-    }),
-    dataResult: () => ({
-      score: clamp(52 + ctx.data * 6.5 + (ctx.quantified ? 8 : 0)),
-      evidence:
-        ctx.data > 0
-          ? `出现 ${ctx.data} 类数据驱动信号（指标/看板/实验/复盘）${quantified ? '，且结论有量化结果支撑' : ''}`
-          : '未见数据指标、实验或结果量化的描述，数据驱动能力证据不足',
-    }),
-    logic: () => ({
-      score: clamp(53 + ctx.logic * 7 + (ctx.quantified ? 4 : 0)),
-      evidence:
-        ctx.logic > 0
-          ? `出现 ${ctx.logic} 类结构化思维信号（拆解/方法论/优先级/复盘/流程设计）`
-          : '经历多为罗列事项，缺少问题拆解、方法框架与决策逻辑的描述',
-    }),
-    content: () => ({
-      score: clamp(52 + ctx.content * 7 + (ctx.quantified ? 5 : 0)),
-      evidence:
-        ctx.content > 0
-          ? `出现 ${ctx.content} 类内容创意信号（文案/策划/新媒体/活动/品牌传播）${quantified ? '，并有效果数据' : ''}`
-          : '缺少内容产出或创意策划类经历的直接证据',
-    }),
-    empathy: () => ({
-      score: clamp(54 + ctx.empathy * 8 + ctx.collab * 2),
-      evidence:
-        ctx.empathy > 0
-          ? `出现 ${ctx.empathy} 类人际敏感信号（倾听/辅导/员工沟通/情绪支持等）`
-          : '简历缺少处理他人情绪、差异化沟通或辅导支持类经历，共情能力需面试验证',
-    }),
-    principle: () => ({
-      score: clamp(54 + ctx.principle * 8),
-      evidence:
-        ctx.principle > 0
-          ? `出现 ${ctx.principle} 类合规与原则信号（制度执行/保密/劳动法规/风险控制）`
-          : '未见合规、保密或制度执行类经历，对敏感岗位需重点核实底线意识',
-    }),
-    ux: () => ({
-      score: clamp(52 + ctx.ux * 8 + (ctx.quantified ? 4 : 0)),
-      evidence:
-        ctx.ux > 0
-          ? `出现 ${ctx.ux} 类体验设计信号（用研/可用性/信息架构/走查）${quantified ? '，且有体验指标改善' : ''}`
-          : '简历缺少用户研究与体验方法论证据，视觉产出之外的思考深度待验证',
-    }),
-    aesthetics: () => ({
-      score: clamp(54 + ctx.aesthetics * 8 + ctx.ux * 2),
-      evidence:
-        ctx.aesthetics > 0
-          ? `出现 ${ctx.aesthetics} 类审美创意信号（作品集/视觉风格/品牌/动效）`
-          : '简历未附作品集或缺少视觉风格类描述，审美水平需现场核验',
-    }),
-  }
+    }
 
-  const dimensionScores: CompetencyScore[] = dimensions.map((d) => {
-    const result = scorers[d.family](d)
-    return { id: d.id, label: d.label, score: result.score, evidence: result.evidence }
+    // JD 关键技能 + 交付/深度动词 → 强专业证据
+    const clauseSkills = matched.filter((s) =>
+      s.aliases.some((a) => lower.includes(a)),
+    )
+    const delivery = has(lower, DELIVERY_WORDS) || has(lower, DEPTH_WORDS)
+    if (clauseSkills.length > 0 && delivery) {
+      hits.unshift({
+        competency: `专业深度（${clauseSkills[0].label}）`,
+        domain: 'hardSkill',
+        axis: 'depth',
+        words: [],
+        base: 4.1,
+      })
+    } else if (clauseSkills.length > 0 && hits.length === 0) {
+      // 仅出现技能名：弱证据（不能据此打高分）
+      hits.push({
+        competency: `专业技能出现（${clauseSkills[0].label}）`,
+        domain: 'hardSkill',
+        axis: 'depth',
+        words: [],
+        base: 2.4,
+      })
+    }
+
+    for (const d of hits.slice(0, 2)) {
+      const strength = clamp(
+        d.base + (quantified ? 0.8 : 0) + (owner ? 0.5 : 0) - (!quantified && d.base < 3 ? 0.4 : 0),
+        1,
+        5,
+      )
+      rawEvidence.push({
+        id: `e${idx}-${d.axis ?? d.domain}`,
+        rawText: clause.length > 90 ? `${clause.slice(0, 90)}…` : clause,
+        competency: d.competency,
+        domain: d.domain,
+        axis: d.axis,
+        strength: Math.round(strength * 10) / 10,
+        confidence: Math.round(clamp01(0.62 + (quantified ? 0.14 : 0) + (owner ? 0.09 : 0)) * 100) / 100,
+      })
+    }
   })
 
-  /* ---------- 综合评分 ---------- */
-  const overall = clamp(
-    dimensionScores.reduce((acc, s) => acc + s.score, 0) / dimensionScores.length,
+  // 同一胜任力最多保留 2 条最强证据，整体取前 10 条
+  const perCompetency = new Map<string, number>()
+  const evidence = rawEvidence
+    .sort((a, b) => b.strength - a.strength)
+    .filter((e) => {
+      const n = perCompetency.get(e.competency) ?? 0
+      if (n >= 2) return false
+      perCompetency.set(e.competency, n + 1)
+      return true
+    })
+    .slice(0, 10)
+    .map((e, i) => ({ ...e, id: `EV-${String(i + 1).padStart(2, '0')}` }))
+
+  const axisCount = (axis: RadarId) =>
+    evidence.filter((e) => e.axis === axis).length
+  const domainCount = (domain: DomainId) =>
+    evidence.filter((e) => e.domain === domain).length
+  const depthN = axisCount('depth')
+  const breadthN = axisCount('breadth')
+  const learningN = axisCount('learning')
+  const psN = axisCount('problemSolving')
+  const executionN = axisCount('execution')
+  const collabN = axisCount('collaboration')
+  const innovationN = evidence.filter(
+    (e) => e.competency.includes('创新'),
+  ).length
+
+  const distinctCvSkills = new Set(
+    SKILL_LEXICON.filter((s) => s.aliases.some((a) => cvText.includes(a))).map(
+      (s) => s.label,
+    ),
+  ).size
+
+  /* ============ Step 3：Competency Mapping + Score Aggregation ============ */
+  const strongest = (axis?: RadarId, domain?: DomainId) =>
+    evidence.find((e) => (axis ? e.axis === axis : e.domain === domain))
+
+  const hardScore = clamp(
+    45 +
+      coverage * 30 +
+      depthN * 3.5 +
+      breadthN * 2 +
+      (quantClauses ? 4 : 0) +
+      (matched.length >= 4 ? 3 : 0),
+  )
+  const cognitiveScore = clamp(
+    50 +
+      learningN * 6 +
+      psN * 6 +
+      papers * 4 +
+      certs * 2 +
+      learningExtra * 2 +
+      (quantClauses >= 2 ? 3 : 0),
+  )
+  const behavioralScore = clamp(
+    49 +
+      executionN * 5.5 +
+      collabN * 5.5 +
+      ownerClauses * 2.2 +
+      innovationN * 3 +
+      quantClauses * 2,
+  )
+  const roleFitScore = clamp(
+    60 +
+      startupSig * 5 +
+      bigCorpSig * 4 +
+      industryHit.length * 7 -
+      (yearReq && !yearInCv ? 6 : 0),
   )
 
-  /* ---------- 亮点 ---------- */
-  const topMatched = matchedLabels.slice(0, 4).join('、')
-  const highlightPool: string[] = []
-  if (coverage >= 0.6) {
-    highlightPool.push(
-      `专业能力重合度高：JD 要求的 ${topMatched} 等关键能力在简历中均有对应经历支撑，上手成本较低`,
-    )
-  } else if (matchedLabels.length > 0) {
-    highlightPool.push(
-      `具备 ${matchedLabels.slice(0, 3).join('、')} 等岗位相关能力，存在可迁移的经验底座，部分要求可在面试中验证深度`,
-    )
+  const hardRationale =
+    matchedLabels.length > 0
+      ? `JD 要求的 ${matched.length}/${required.length || '?'} 项专业能力在简历中有对应经历（${matchedLabels.slice(0, 4).join('、')}）；${depthN ? `最强行为证据：「${strongest('depth')?.rawText ?? ''}」` : '但多数只停留在技能名词，缺少深度设计/落地细节'}${quantClauses ? '；并含量化结果' : '；量化结果偏少'}。`
+      : '简历中未发现 JD 列出的核心专业能力的直接证据，专业匹配度低，需面试验证可迁移性。'
+  const cognitiveRationale =
+    learningN + psN > 0
+      ? `在 ${learningN} 条学习类、${psN} 条问题解决类行为中可见证据，例如「${(strongest('problemSolving') ?? strongest('learning'))?.rawText ?? ''}」；${papers ? '另有论文/专利等研究产出；' : ''}${quantClauses >= 2 ? '多次以数据闭环验证判断。' : '数据化验证的频次一般。'}`
+      : '简历多为事项罗列，缺少快速学习、复杂问题拆解或指标改善的行为描述，认知能力只能低置信度估计。'
+  const behavioralRationale =
+    executionN + collabN > 0
+      ? `${executionN ? `执行/当责证据 ${executionN} 条（如「${strongest('execution')?.rawText ?? ''}」）；` : '缺少主导/交付类证据；'}${collabN ? `跨团队协作证据 ${collabN} 条。` : '未见跨团队推动与影响力证据。'}${ownerClauses ? ` 主导角色信号出现 ${ownerClauses} 次。` : ''}`
+      : '经历以参与执行为主，Ownership、横向影响与抗压交付的行为证据不足。'
+  const roleFitRationale =
+    `行业相关信号 ${industryHit.length} 项（${industryHit.slice(0, 3).join('、') || '无明显重合'}）；` +
+    `${startupSig ? '有 0-1/不确定性环境经历；' : ''}${bigCorpSig ? '有规范化大组织经历；' : ''}` +
+    `${yearReq && !yearInCv ? `JD 要求约 ${yearReq[1]} 年经验但简历未清晰标注年限；` : ''}职业稳定性与入职动机需面谈确认（简历文本无法充分证明，故置信度从低）。`
+
+  const domainScores: DomainScore[] = [
+    {
+      id: 'hardSkill',
+      label: '专业能力',
+      enLabel: 'Hard Skill',
+      weight: 40,
+      score: hardScore,
+      confidence: Math.round(clamp01(0.55 + Math.min(domainCount('hardSkill'), 5) * 0.06 + coverage * 0.12) * 100) / 100,
+      rationale: hardRationale,
+    },
+    {
+      id: 'cognitive',
+      label: '认知能力',
+      enLabel: 'Cognitive Ability',
+      weight: 25,
+      score: cognitiveScore,
+      confidence: Math.round(clamp01(0.55 + Math.min(learningN + psN, 5) * 0.07 + papers * 0.05) * 100) / 100,
+      rationale: cognitiveRationale,
+    },
+    {
+      id: 'behavioral',
+      label: '行为胜任力',
+      enLabel: 'Behavioral Competency',
+      weight: 25,
+      score: behavioralScore,
+      confidence: Math.round(clamp01(0.52 + Math.min(executionN + collabN, 5) * 0.07 + (ownerClauses ? 0.05 : 0)) * 100) / 100,
+      rationale: behavioralRationale,
+    },
+    {
+      id: 'roleFit',
+      label: '岗位匹配',
+      enLabel: 'Role Fit',
+      weight: 10,
+      score: roleFitScore,
+      confidence: Math.round(clamp01(0.5 + startupSig * 0.07 + bigCorpSig * 0.05 + industryHit.length * 0.08) * 100) / 100,
+      rationale: roleFitRationale,
+    },
+  ]
+
+  const radar: RadarAxis[] = RADAR_AXES.map((axis) => {
+    let score: number
+    switch (axis.id) {
+      case 'depth':
+        score = clamp(44 + coverage * 28 + depthN * 6 + (quantClauses ? 4 : 0))
+        break
+      case 'breadth':
+        score = clamp(50 + breadthN * 7 + Math.min(distinctCvSkills, 10) * 2.5)
+        break
+      case 'learning':
+        score = clamp(50 + learningN * 6.5 + papers * 4 + certs * 2 + learningExtra * 2)
+        break
+      case 'problemSolving':
+        score = clamp(50 + psN * 6.5 + quantClauses * 3)
+        break
+      case 'execution':
+        score = clamp(49 + executionN * 5.5 + ownerClauses * 3.5 + quantClauses * 3)
+        break
+      case 'collaboration':
+        score = clamp(49 + collabN * 7)
+        break
+    }
+    return { ...axis, score }
+  })
+
+  const overall = clamp(
+    domainScores.reduce((acc, d) => acc + d.score * (d.weight / 100), 0),
+  )
+
+  /* ============ Step 4：Highlights（证据 + 为什么重要） ============ */
+  const highlightPool: Highlight[] = []
+  const usedAxis = new Set<RadarId>()
+  for (const e of evidence) {
+    if (e.axis && e.strength >= 3.4 && !usedAxis.has(e.axis)) {
+      usedAxis.add(e.axis)
+      highlightPool.push({
+        evidence: e.rawText,
+        whyItMatters: WHY_MAP[e.axis],
+      })
+    }
+    if (highlightPool.length >= 3) break
   }
-  if (quantified) {
-    highlightPool.push(
-      '结果导向、证据意识强：项目经历包含明确的量化指标（增长/占比/时长/规模等），能讲清投入产出与个人贡献',
-    )
+  if (highlightPool.length < 3 && coverage >= 0.6) {
+    highlightPool.push({
+      evidence: `简历覆盖 JD 要求的 ${matchedLabels.slice(0, 4).join('、')} 等关键专业能力`,
+      whyItMatters: '专业重合度高，上手成本与培养周期显著低于平均候选人',
+    })
   }
-  if (ctx.data >= 2) {
-    highlightPool.push(
-      '数据驱动特征明显：熟悉指标拆解、看板与实验/复盘闭环，符合该岗位用数据支持决策的要求',
-    )
+  if (highlightPool.length < 3 && quantClauses >= 2) {
+    highlightPool.push({
+      evidence: '多个项目经历给出了明确的量化结果与对比基线',
+      whyItMatters: '结果意识强、表述可验证，降低了"参与即拥有"的注水风险',
+    })
   }
-  if (papers) {
-    highlightPool.push(
-      '研究与学习潜力突出：有论文或研究项目产出，体现信息检索、科学方法与深度思考能力',
-    )
-  }
-  if (certs) {
-    highlightPool.push(
-      '专业资质可信：持有岗位相关认证/证书，专业体系化程度与自我提升意愿有外部佐证',
-    )
-  }
-  if (openSource) {
-    highlightPool.push('有公开作品/开源或社区影响力，专业热情与自驱力有外部证据')
-  }
-  if (ctx.collab >= 3) {
-    highlightPool.push(
-      '协作与推动力充分：简历多次出现跨部门对接、牵头协调与带人经历，适配需要横向推动的工作场景',
-    )
-  }
-  if (ctx.resilience >= 2) {
-    highlightPool.push(
-      '抗压经验丰富：经历过上线/大促/紧急攻关等高压场景，对快节奏与不确定性有心理准备',
-    )
-  }
-  if (ctx.content >= 2) {
-    highlightPool.push(
-      '内容与策划能力突出：有持续的新媒体/文案/活动产出经历，并能沉淀选题与运营机制',
-    )
-  }
-  if (ctx.userBusiness >= 2) {
-    highlightPool.push(
-      '用户与商业视角兼备：能从用户场景出发并关联收入、成本与客户价值，决策成熟度较高',
-    )
-  }
-  if (highlightPool.length === 0) {
-    highlightPool.push(
-      '候选人背景与岗位存在一定相关性，建议通过结构化面试进一步判断能力深度与岗位意愿',
-    )
+  while (highlightPool.length < 3) {
+    highlightPool.push({
+      evidence: '教育背景与职业方向基本一致，经历叙事连贯',
+      whyItMatters: '职业稳定性尚可，但需在 BEI 面试中进一步取证能力深度',
+    })
   }
   const highlights = highlightPool.slice(0, 3)
-  while (highlights.length < 3) {
-    highlights.push('简历叙事完整、教育与职业方向一致，整体稳定性尚可')
-  }
 
-  /* ---------- 风险 ---------- */
+  /* ============ Step 5：Risks（证据缺口 / 表述风险） ============ */
   const riskPool: RiskItem[] = []
   if (missingLabels.length > 0) {
     riskPool.push({
-      text: `JD 中明确要求的 ${missingLabels.slice(0, 3).join('、')} 在简历中未体现，需确认是未接触还是简历漏写，并评估培养成本`,
+      text: `岗位要求的 ${missingLabels.slice(0, 3).join('、')} 在简历中无对应行为证据，需确认是未接触还是漏写，并评估培养成本`,
       severity: coverage < 0.4 ? 'critical' : 'warning',
     })
   }
-  if (!quantified) {
+  if (quantClauses === 0) {
     riskPool.push({
-      text: '经历描述缺少可验证的量化结果（指标、规模、对比基线），存在"参与即拥有"的注水风险，建议要求其还原数据',
+      text: '全部经历均无可验证的量化结果（指标/规模/基线对比），存在"参与即拥有"的注水风险，面试应要求还原数据与个人贡献边界',
+      severity: 'critical',
+    })
+  }
+  if (participateOnly >= 2 && ownerClauses === 0) {
+    riskPool.push({
+      text: '经历多次以"参与"表述但无主导角色证据，团队中的实际职责与影响力不明确，需用 BEI 追问其独立决策部分',
       severity: 'warning',
     })
   }
-  const yearReq = jd.match(/(\d+)\s*年(以上|及以上)?/)
-  if (yearReq && !/(\d+)\s*年.*(经验|工作)/.test(cv)) {
+  if (collabN === 0) {
     riskPool.push({
-      text: `JD 要求约 ${yearReq[1]} 年相关经验，但简历未清晰标注总工作年限，需核实资历是否达标`,
+      text: '未见跨团队协作、沟通对齐或横向推动的行为证据，协作影响力只能低置信度估计',
+      severity: 'warning',
+    })
+  }
+  if (yearReq && !yearInCv) {
+    riskPool.push({
+      text: `JD 要求约 ${yearReq[1]} 年相关经验，简历未清晰标注总工作年限，资历达标情况需核实`,
       severity: 'critical',
     })
   }
   if (education === 0) {
     riskPool.push({
-      text: '未见明确教育背景信息，若岗位有学历硬性要求需补充核实',
+      text: '未见明确教育背景信息，若岗位有学历硬性要求需补充核实（学校本身不作评分依据）',
       severity: 'warning',
     })
   }
-  if (ctx.resilience === 0) {
+  if (depthN === 0) {
     riskPool.push({
-      text: '缺少高压目标、紧急任务或不确定性环境的经历证据，对岗位强度的适应力待验证',
+      text: '缺少体现专业深度的行为证据（架构设计、核心难点、方案取舍），能力停留在"用过"还是"精通"无法从简历判断',
       severity: 'warning',
     })
   }
-  if (ctx.collab === 0) {
+  if (riskPool.length === 0) {
     riskPool.push({
-      text: '简历偏个人贡献视角，未体现跨团队协作与影响力，沟通协同能力需要面试验证',
+      text: '简历证据链较完整，建议面试中仍对关键项目的个人贡献边界与数据口径做背调级核实',
       severity: 'warning',
     })
   }
-  // 兜底：保证输出 2 条风险/待核实项
-  riskPool.push({
-    text: '建议在面试中进一步验证候选人对目标行业业务场景的理解深度、入职动机与职业稳定性',
-    severity: 'warning',
-  })
-  riskPool.push({
-    text: '本报告由本地模拟引擎基于文本信号生成，仅用于产品体验；正式决策请切换真实大模型并以面试/背调结论为准',
-    severity: 'warning',
-  })
-  const risks = riskPool.slice(0, 2)
+  if (riskPool.length < 2) {
+    riskPool.push({
+      text: '部分能力评分仅基于有限的书面证据，建议以 BEI 追问补充场景化取证，避免单次简历材料造成高估',
+      severity: 'warning',
+    })
+  }
+  const risks = riskPool.slice(0, 3)
 
-  /* ---------- STAR 提问库（按信号族） ---------- */
-  const topSkill = matchedLabels[0] ?? required[0]?.label ?? '岗位核心能力'
-  const bank: Record<DimensionFamily, StarQuestion> = {
-    skill: {
-      dimension: dimensions.find((d) => d.family === 'skill')?.label ?? '专业能力',
-      question: `请挑选一个你最有代表性的 ${topSkill} 相关项目，按 STAR 结构讲述：当时的背景与目标是什么（S/T），你设计了什么方案、做了哪些关键取舍（A），最终结果如何、用什么数据证明（R）？`,
-      followUp: '追问最难的细节与备选方案对比；若重做会如何改进；指标的统计口径以及你个人的贡献边界。',
+  /* ============ Step 6：Gap Analysis ============ */
+  const sortedAxes = [...radar].sort((a, b) => b.score - a.score)
+  const strengths: string[] = []
+  if (coverage >= 0.6) {
+    strengths.push(
+      `专业能力与 JD 重合度高（${matched.length}/${required.length || '?'}：${matchedLabels.slice(0, 4).join('、')}）`,
+    )
+  }
+  strengths.push(
+    `${sortedAxes[0].label}表现突出（${sortedAxes[0].score} 分），有行为证据支撑`,
+  )
+  if (sortedAxes[1].score >= 65) {
+    strengths.push(`${sortedAxes[1].label}同样在均值以上（${sortedAxes[1].score} 分）`)
+  }
+  if (ownerClauses >= 2) strengths.push('多次承担主导/Owner 角色，当责意识强')
+
+  const gaps: string[] = []
+  if (missingLabels.length > 0) {
+    gaps.push(`缺少岗位明确要求：${missingLabels.slice(0, 3).join('、')}`)
+  }
+  const weakAxes = [...radar].sort((a, b) => a.score - b.score).slice(0, 2)
+  for (const axis of weakAxes) {
+    if (axis.score < 70) {
+      gaps.push(`${axis.label}行为证据不足（${axis.score} 分），简历未见对应经历`)
+    }
+  }
+  if (quantClauses === 0) gaps.push('经历缺少量化结果，能力强弱无法横向比较')
+  if (gaps.length === 0) gaps.push('未发现明显硬差距，重点在面试中验真证据细节')
+
+  const recommendation =
+    overall >= 75
+      ? `建议进入面试：专业与行为证据匹配度较高，优先用 BEI 对 ${weakAxes[0].label}、${weakAxes[1].label} 取证，并核实 ${missingLabels[0] ?? '关键项目数据口径'}。`
+      : overall >= 60
+        ? `可进一步沟通：存在可迁移底座但证据不充分，建议先做 30 分钟电话面，重点验证 ${weakAxes.map((a) => a.label).join('、')} 与入职动机后再决定是否推进。`
+        : `初筛匹配度偏低：与岗位核心要求差距明显，不建议直接进入正式流程；如考虑转岗/培养，需先验证 ${weakAxes[0].label} 的潜力证据。`
+
+  const gapAnalysis: GapAnalysis = {
+    strengths: strengths.slice(0, 3),
+    gaps: gaps.slice(0, 3),
+    recommendation,
+  }
+
+  /* ============ Step 7：BEI/STAR 问题（由证据缺口与风险触发） ============ */
+  const QUESTION_BANK: Record<
+    RadarId | 'roleFit',
+    { competency: string; domain: DomainId; question: string; followUp: string }
+  > = {
+    depth: {
+      competency: '专业深度',
+      domain: 'hardSkill',
+      question:
+        '请挑一个你最有技术/专业深度的项目：系统当时面临的核心难点是什么（S/T）？你做了哪些关键方案取舍、为什么（A）？最终用什么指标证明方案有效（R）？',
+      followUp: '追问备选方案对比、失败的尝试、你个人负责的模块边界；若重做会如何改进。',
+    },
+    execution: {
+      competency: '执行交付（Execution）',
+      domain: 'behavioral',
+      question:
+        '请讲一个你在资源不足或时间紧迫下仍然交付的项目：目标与约束是什么（S/T）？你如何拆路径、排优先级并推动落地（A）？最终交付结果与数据如何（R）？',
+      followUp: '追问延期风险如何管理、过程中砍掉了什么、量化结果的统计口径。',
+    },
+    problemSolving: {
+      competency: '问题解决（Problem Solving）',
+      domain: 'cognitive',
+      question:
+        '请分享一次你定位并解决复杂问题的经历：异常现象与你的初始假设是什么（S/T）？你如何拆解、验证假设并找到根因（A）？问题解决后带来了什么可量化变化（R）？',
+      followUp: '追问走过哪些弯路、如何排除干扰因素、解决方法是否被沉淀为机制。',
     },
     learning: {
-      dimension: '学习能力与成长潜能',
-      question: '请举一个你在短时间内从零掌握一项新技能/新业务并落地的例子：契机与时间压力是什么（S/T），学习路径与资源有哪些（A），掌握到什么程度、产出了什么（R）？',
-      followUp: '追问学习中踩过的坑、如何验证自己真正学会、有没有输出为文档或分享。',
+      competency: '学习敏捷（Learning Agility）',
+      domain: 'cognitive',
+      question:
+        '请举一个你在短时间内从零掌握一项新技能/新业务并投入实战的例子：契机与时间压力是什么（S/T）？学习路径与资源有哪些（A）？掌握到什么程度、产出了什么成果（R）？',
+      followUp: '追问学习中踩过的坑、如何验证自己真正学会、有无输出为文档或团队分享。',
     },
-    collab: {
-      dimension: '团队协作与沟通',
-      question: '请讲一次你与协作方（如业务/研发/客户）意见明显不一致的经历：分歧焦点与各方诉求是什么（S/T），你如何沟通并推动共识（A），结果与后续关系如何（R）？',
-      followUp: '追问如果对方始终不认同你会怎么办；事后复盘自己在沟通上可改进的点。',
+    collaboration: {
+      competency: '协作与影响力（Collaboration）',
+      domain: 'behavioral',
+      question:
+        '请讲一次你与协作方（业务/研发/客户/设计等）意见明显冲突的经历：分歧焦点与各方诉求是什么（S/T）？你在没有汇报权的情况下如何推动共识（A）？结果与后续合作关系如何（R）？',
+      followUp: '追问如果对方始终不认同你怎么办；事后复盘自己在沟通上的可改进点。',
     },
-    resilience: {
-      dimension: '抗压与职业适应力',
-      question: '请描述一次目标紧急/资源不足/连续受挫时的经历：紧迫情境与你的责任是什么（S/T），你如何排优先级、调节状态并推进（A），最终结果及你沉淀了什么机制（R）？',
-      followUp: '追问高压持续了多久、如何管理精力与情绪；之后是否建立预案避免重演。',
+    breadth: {
+      competency: '专业广度与知识迁移',
+      domain: 'hardSkill',
+      question:
+        '请讲一次你把 A 领域的方法迁移到 B 领域解决问题的经历：两个领域的差异是什么（S/T）？你如何抽象共性并改造方法（A）？迁移后的实际效果如何（R）？',
+      followUp: '追问迁移中失效的部分、你如何补知识缺口、对方领域专家如何评价。',
     },
-    userBusiness: {
-      dimension: '用户洞察与商业理解',
-      question: '请讲一次你通过用户/客户洞察改变了原有产品或业务决策的经历：当时的问题与假设是什么（S/T），你如何调研并形成判断（A），决策带来了什么业务结果（R）？',
-      followUp: '追问样本与方法是否可靠；当用户诉求与商业目标冲突时如何取舍。',
-    },
-    dataResult: {
-      dimension: '数据驱动与结果导向',
-      question: '请举一个你用数据定位问题并最终拿到业务结果的例子：指标异常或目标差距是什么（S/T），你如何拆解、提出假设并验证（A），关键指标最终变化多少（R）？',
-      followUp: '追问指标定义与归因可信度；如果数据不足你如何决策；实验是否有长期效果。',
-    },
-    logic: {
-      dimension: '逻辑思维与问题拆解',
-      question: '请讲一个你面对模糊复杂问题（无现成答案）的经历：问题本身和约束是什么（S/T），你用什么框架拆解、如何排优先级（A），最终方案与结果如何（R）？',
-      followUp: '追问拆解中的关键假设、被排除的选项，以及事后看框架有何不足。',
-    },
-    content: {
-      dimension: '创意策划与内容敏感度',
-      question: '请介绍一次你最成功的内容/活动策划：目标与受众背景是什么（S/T），创意与执行节奏如何设计（A），传播或转化数据如何（R）？',
-      followUp: '追问创意灵感来源、失败备选方案、对数据反馈做了哪些快速调整。',
-    },
-    empathy: {
-      dimension: '共情力与人际敏感度',
-      question: '请讲一次你帮助情绪激动或抗拒配合的员工/客户的经历：对方的处境与诉求是什么（S/T），你如何倾听、建立信任并推进（A），事情最终怎样收尾（R）？',
-      followUp: '追问你如何判断对方真实诉求；如何在共情的同时守住原则与边界。',
-    },
-    principle: {
-      dimension: '组织原则性',
-      question: '请讲一次业务方的诉求与制度/合规要求发生冲突的经历：冲突点与压力是什么（S/T），你如何在不牺牲底线的前提下寻找方案（A），最终结果与各方反馈如何（R）？',
-      followUp: '追问你判断"红线"的依据；如果上级施压要求通融，你会如何处理。',
-    },
-    ux: {
-      dimension: '用户体验思维',
-      question: '请讲一次你基于用研发现推动体验改版的经历：用户问题与证据是什么（S/T），你如何设计研究并定义改版方向（A），任务完成率/满意度等指标有何变化（R）？',
-      followUp: '追问研究方法与样本偏差；当体验目标与业务转化冲突时如何平衡。',
-    },
-    aesthetics: {
-      dimension: '审美与创意表达',
-      question: '请介绍一个你最能代表审美水准的作品：项目背景与设计目标是什么（S/T），你如何探索风格、做出设计决策（A），作品最终的评价与结果如何（R）？',
-      followUp: '追问灵感参考体系、如何回应"不好看/再改改"类反馈、设计取舍依据。',
+    roleFit: {
+      competency: '职业动机与环境适配',
+      domain: 'roleFit',
+      question:
+        '请谈谈你选择下一份工作最看重的三个因素，以及过去哪段经历最能说明你适合我们这种团队环境：当时的环境与你的选择是什么（S/T/A）？结果与你现在回头的评价如何（R）？',
+      followUp: '追问离职原因、对模糊分工/快节奏的接受度、职业稳定性预期与 offer 选择标准。',
     },
   }
 
-  const familySeen = new Set<DimensionFamily>()
   const questions: StarQuestion[] = []
-  for (const d of dimensions) {
-    if (!familySeen.has(d.family)) {
-      familySeen.add(d.family)
-      const q = { ...bank[d.family] }
-      if (!q.dimension) q.dimension = d.label
-      questions.push(q)
-    }
-    if (questions.length >= 4) break
+  const ascAxes = [...radar].sort((a, b) => a.score - b.score)
+  // 最弱两项 → 证据不足，BEI 取证
+  for (const axis of ascAxes.slice(0, 2)) {
+    const q = QUESTION_BANK[axis.id]
+    questions.push({
+      ...q,
+      reason: `「${axis.label}」仅 ${axis.score} 分、简历证据不足，BEI 重点取证`,
+    })
   }
-  if (questions.length < 3) questions.push(bank.skill)
+  // 最强项 → 高分验真，防止注水
+  const best = ascAxes[ascAxes.length - 1]
+  questions.push({
+    ...QUESTION_BANK[best.id],
+    reason: `「${best.label}」是最高项（${best.score} 分），需深挖细节验证真实性`,
+  })
+  // Role fit → 适配/稳定性核实
+  questions.push({
+    ...QUESTION_BANK.roleFit,
+    reason: '简历文本无法证明职业稳定性与团队环境适配，必须面谈核实',
+  })
 
-  /* ---------- 结论 ---------- */
-  const best = [...dimensionScores].sort((a, b) => b.score - a.score)[0]
+  /* ============ 结论 ============ */
   const summary =
     overall >= 75
-      ? `候选人在「${best.label}」上证据突出${matchedLabels.length ? `，且具备 ${matchedLabels.slice(0, 2).join('、')} 等关键能力，` : '，'}与${categoryLabel}岗位匹配度较高，建议进入面试并核实风险项。`
+      ? `四域加权 ${overall} 分：专业与行为证据链较完整，最强项为「${sortedAxes[0].label}」，与${categoryLabel}岗位匹配度较高，建议面试并对薄弱域 BEI 取证。`
       : overall >= 60
-        ? `候选人具备一定相关基础（最强项：${best.label}），但部分岗位要求证据不足，可先沟通确认深度与意愿。`
-        : `候选人与${categoryLabel}岗位的核心要求重合较少（当前最强项：${best.label}），初筛匹配度偏低，建议谨慎推进。`
+        ? `四域加权 ${overall} 分：具备一定可迁移基础（最强项「${sortedAxes[0].label}」），但 ${weakAxes.map((a) => a.label).join('、')} 证据不足，建议先沟通验真。`
+        : `四域加权 ${overall} 分：与${categoryLabel}岗位核心要求的行为证据重合较少（${weakAxes[0].label} 最弱），初筛匹配度偏低，建议谨慎推进。`
 
   return {
     score: overall,
     band: bandOf(overall),
     summary,
     categoryLabel,
-    dimensionScores,
+    domainScores,
+    radar,
+    evidence,
     highlights,
     risks,
+    gapAnalysis,
     questions,
     generatedAt: new Date().toISOString(),
-    model: 'local-simulation-v1',
+    model: 'competency-engine-v2',
     provider: 'demo',
   }
 }

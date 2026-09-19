@@ -1,7 +1,11 @@
-import type { CompetencyScore } from '../types'
+interface RadarPoint {
+  id: string
+  label: string
+  score: number
+}
 
 interface RadarChartProps {
-  scores: CompetencyScore[]
+  scores: RadarPoint[]
   size?: number
 }
 

@@ -1,23 +1,26 @@
 import { useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowRight,
+  Brain,
   Briefcase,
-  Check,
   Code2,
   Eraser,
+  FileSearch,
   FileUp,
   FileText,
   FlaskConical,
+  GitBranch,
   LayoutGrid,
   Loader2,
   Megaphone,
   Palette,
+  Scale,
   Sparkles,
   TrendingUp,
   Users,
 } from 'lucide-react'
-import type { CompetencyDimension } from '../types'
-import { JOB_CATEGORIES } from '../lib/constants'
+import { COMPETENCY_DOMAINS, JOB_CATEGORIES } from '../lib/constants'
 import { extractResumeText } from '../lib/fileParser'
 import type { LucideIcon } from 'lucide-react'
 
@@ -38,14 +41,18 @@ interface InputPanelProps {
   onCvChange: (value: string) => void
   categoryId: string
   onCategoryChange: (id: string) => void
-  dimensions: CompetencyDimension[]
-  selectedDimIds: string[]
-  onToggleDim: (id: string) => void
   loading: boolean
   onGenerate: () => void
   onLoadDemo: () => void
   onClear: () => void
 }
+
+const PIPELINE = [
+  { icon: FileSearch, label: '证据抽取' },
+  { icon: GitBranch, label: '胜任力映射' },
+  { icon: Scale, label: '加权评分' },
+  { icon: Brain, label: 'BEI 出题' },
+]
 
 export function InputPanel({
   jd,
@@ -54,9 +61,6 @@ export function InputPanel({
   onCvChange,
   categoryId,
   onCategoryChange,
-  dimensions,
-  selectedDimIds,
-  onToggleDim,
   loading,
   onGenerate,
   onLoadDemo,
@@ -72,8 +76,7 @@ export function InputPanel({
     !loading &&
     !parsing &&
     jd.trim().length >= 20 &&
-    cv.trim().length >= 20 &&
-    selectedDimIds.length > 0
+    cv.trim().length >= 20
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return
@@ -253,52 +256,56 @@ export function InputPanel({
         />
       </section>
 
-      {/* 维度选择 */}
+      {/* 胜任力评估框架（固定四域模型，自动按 JD 构建画像，无需勾选） */}
       <section>
         <span className="field-label mb-2.5">
           <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-          评估维度
-          <span className="text-slate-600">· 基于组织心理学胜任力模型</span>
+          胜任力评估框架
+          <span className="text-slate-600">· I-O Psychology · 证据导向</span>
         </span>
-        <div className="grid gap-2">
-          {dimensions.map((dim) => {
-            const checked = selectedDimIds.includes(dim.id)
-            return (
-              <button
-                key={dim.id}
-                type="button"
-                onClick={() => onToggleDim(dim.id)}
-                className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-left transition ${
-                  checked
-                    ? 'border-blue-500/50 bg-blue-500/[0.08]'
-                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'
-                }`}
-              >
-                <span
-                  className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition ${
-                    checked
-                      ? 'border-blue-500 bg-blue-600'
-                      : 'border-slate-600 bg-transparent'
-                  }`}
-                >
-                  {checked && <Check className="h-3 w-3 text-white" />}
+
+        {/* 评估流水线 */}
+        <div className="mb-2 flex items-center justify-between gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] px-2.5 py-2">
+          {PIPELINE.map((step, i) => (
+            <div key={step.label} className="flex flex-1 items-center">
+              <div className="flex min-w-0 flex-col items-center gap-1">
+                <step.icon className="h-4 w-4 text-blue-300/90" />
+                <span className="text-[10px] leading-none text-slate-400">
+                  {step.label}
                 </span>
-                <span>
-                  <span
-                    className={`block text-[13px] font-medium ${
-                      checked ? 'text-white' : 'text-slate-300'
-                    }`}
-                  >
-                    {dim.label}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">
-                    {dim.description}
-                  </span>
-                </span>
-              </button>
-            )
-          })}
+              </div>
+              {i < PIPELINE.length - 1 && (
+                <ArrowRight className="mx-0.5 h-3 w-3 shrink-0 text-slate-700" />
+              )}
+            </div>
+          ))}
         </div>
+
+        {/* 四大域权重 */}
+        <div className="grid grid-cols-2 gap-1.5">
+          {COMPETENCY_DOMAINS.map((d) => (
+            <div
+              key={d.id}
+              title={d.description}
+              className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-2.5 py-2"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="truncate text-[12px] font-medium text-slate-300">
+                  {d.label}
+                </span>
+                <span className="shrink-0 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300">
+                  {d.weight}%
+                </span>
+              </div>
+              <div className="mt-0.5 truncate text-[10px] text-slate-600">
+                {d.enLabel}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600">
+          评分必须由简历行为证据支撑，禁止仅凭关键词、学校、公司或年限打分；雷达固定六维：专业深度/广度、学习敏捷、问题解决、执行交付、协作影响。
+        </p>
       </section>
 
       {/* 生成按钮 */}

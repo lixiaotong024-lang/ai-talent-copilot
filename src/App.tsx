@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { TopNav } from './components/TopNav'
 import { SettingsModal } from './components/SettingsModal'
 import { InputPanel } from './components/InputPanel'
@@ -17,24 +17,14 @@ export default function App() {
   const [cv, setCv] = useState('')
   const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID)
   const category = getCategory(categoryId)
-  const [selectedDimIds, setSelectedDimIds] = useState<string[]>(
-    () => getCategory(DEFAULT_CATEGORY_ID).dimensions.map((d) => d.id),
-  )
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const selectedDimensions = useMemo(
-    () => category.dimensions.filter((d) => selectedDimIds.includes(d.id)),
-    [category, selectedDimIds],
-  )
-
   const handleCategoryChange = (id: string) => {
     setCategoryId(id)
-    // 切换类别后默认全选该类别的胜任力维度
-    setSelectedDimIds(getCategory(id).dimensions.map((d) => d.id))
   }
 
   const handleSaveSettings = (next: ApiSettings) => {
@@ -42,17 +32,10 @@ export default function App() {
     saveSettings(next)
   }
 
-  const toggleDimension = (id: string) => {
-    setSelectedDimIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    )
-  }
-
   const handleLoadDemo = () => {
     const demo = getDemo(categoryId)
     setJd(demo.jd)
     setCv(demo.cv)
-    setSelectedDimIds(category.dimensions.map((d) => d.id))
     setError(null)
   }
 
@@ -68,10 +51,6 @@ export default function App() {
       setError('请先填写完整的 JD 与简历内容。')
       return
     }
-    if (selectedDimensions.length === 0) {
-      setError('请至少勾选一个评估维度。')
-      return
-    }
 
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -84,7 +63,6 @@ export default function App() {
         settings,
         jd: jd.trim(),
         cv: cv.trim(),
-        dimensions: selectedDimensions,
         categoryLabel: category.label,
         signal: controller.signal,
       })
@@ -136,9 +114,6 @@ export default function App() {
               onCvChange={setCv}
               categoryId={categoryId}
               onCategoryChange={handleCategoryChange}
-              dimensions={category.dimensions}
-              selectedDimIds={selectedDimIds}
-              onToggleDim={toggleDimension}
               loading={loading}
               onGenerate={() => void runAssessment()}
               onLoadDemo={handleLoadDemo}
@@ -151,7 +126,6 @@ export default function App() {
             loading={loading}
             error={error}
             jd={jd}
-            dimensions={selectedDimensions}
             onRetry={() => void runAssessment()}
           />
         </div>

@@ -1,17 +1,24 @@
 import { useState } from 'react'
 import {
   AlertTriangle,
+  ArrowRight,
   BadgeCheck,
   Check,
   Copy,
   CornerDownRight,
   Download,
   FileSearch,
+  GitBranch,
+  Lightbulb,
+  Link2,
   Loader2,
   MessagesSquare,
+  Scale,
   ShieldAlert,
+  Target,
+  TrendingDown,
 } from 'lucide-react'
-import type { Assessment, CompetencyDimension } from '../types'
+import type { Assessment, DomainId } from '../types'
 import { PROVIDERS } from '../lib/constants'
 import { ScoreRing } from './ScoreRing'
 import { RadarChart } from './RadarChart'
@@ -26,8 +33,37 @@ interface OutputDashboardProps {
   loading: boolean
   error: string | null
   jd: string
-  dimensions: CompetencyDimension[]
   onRetry: () => void
+}
+
+const DOMAIN_STYLE: Record<
+  DomainId,
+  { chip: string; bar: string; dot: string; text: string }
+> = {
+  hardSkill: {
+    chip: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
+    bar: 'from-blue-400 to-indigo-500',
+    dot: 'bg-blue-400',
+    text: 'text-blue-300',
+  },
+  cognitive: {
+    chip: 'border-violet-500/30 bg-violet-500/10 text-violet-300',
+    bar: 'from-violet-400 to-fuchsia-500',
+    dot: 'bg-violet-400',
+    text: 'text-violet-300',
+  },
+  behavioral: {
+    chip: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+    bar: 'from-emerald-400 to-teal-500',
+    dot: 'bg-emerald-400',
+    text: 'text-emerald-300',
+  },
+  roleFit: {
+    chip: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+    bar: 'from-amber-400 to-orange-500',
+    dot: 'bg-amber-400',
+    text: 'text-amber-300',
+  },
 }
 
 function bandColor(score: number) {
@@ -44,6 +80,13 @@ function barColor(score: number) {
   return 'from-rose-400 to-red-500'
 }
 
+function confidenceLabel(c: number) {
+  if (c >= 0.85) return '高置信'
+  if (c >= 0.68) return '中高置信'
+  if (c >= 0.55) return '中置信'
+  return '低置信·需面试验证'
+}
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-CN', { hour12: false })
 }
@@ -53,24 +96,23 @@ export function OutputDashboard({
   loading,
   error,
   jd,
-  dimensions,
   onRetry,
 }: OutputDashboardProps) {
   const [copied, setCopied] = useState(false)
 
   const handleDownload = () => {
     if (!assessment) return
-    const md = buildMarkdown(assessment, jd, dimensions)
+    const md = buildMarkdown(assessment, jd)
     const stamp = new Date()
       .toISOString()
       .slice(0, 16)
       .replace(/[-T:]/g, '')
-    downloadMarkdown(`AI人才评估报告_${stamp}.md`, md)
+    downloadMarkdown(`AI人才胜任力评估报告_${stamp}.md`, md)
   }
 
   const handleCopy = async () => {
     if (!assessment) return
-    await copyText(buildMarkdown(assessment, jd, dimensions))
+    await copyText(buildMarkdown(assessment, jd))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
@@ -80,9 +122,9 @@ export function OutputDashboard({
       {/* 标题栏 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-white">智能评估结果</h2>
+          <h2 className="text-sm font-semibold text-white">胜任力评估结果</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            胜任力模型评分 · 亮点 / 风险识别 · STAR 定制化面试提问
+            证据抽取 → 胜任力映射 → 加权评分 · Gap 分析 · BEI/STAR 面试题
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -134,9 +176,9 @@ export function OutputDashboard({
         <EmptyState />
       ) : (
         <div key={assessment.generatedAt} className="flex flex-col gap-5">
-          {/* 评分 + 雷达 */}
+          {/* 综合分 + 六维雷达 */}
           <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
-            <div className="panel flex animate-fade-up flex-col items-center gap-5 p-6 sm:flex-row sm:items-center">
+            <div className="panel flex flex-col items-center gap-5 p-6 sm:flex-row">
               <ScoreRing score={assessment.score} />
               <div className="min-w-0 flex-1">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -145,9 +187,7 @@ export function OutputDashboard({
                       {assessment.categoryLabel}
                     </span>
                   )}
-                  <span
-                    className={`chip border ${bandColor(assessment.score)}`}
-                  >
+                  <span className={`chip border ${bandColor(assessment.score)}`}>
                     {assessment.band}
                   </span>
                 </div>
@@ -169,16 +209,19 @@ export function OutputDashboard({
               </div>
             </div>
 
-            <div className="panel animate-fade-up p-5" style={{ animationDelay: '60ms' }}>
+            <div className="panel p-5" style={{ animationDelay: '60ms' }}>
               <h3 className="mb-1 text-[13px] font-semibold text-white">
-                胜任力雷达
+                六维能力雷达
               </h3>
-              <RadarChart scores={assessment.dimensionScores} />
-              <div className="mt-2 space-y-2.5">
-                {assessment.dimensionScores.map((s) => (
+              <RadarChart scores={assessment.radar} />
+              <div className="mt-2 space-y-2">
+                {assessment.radar.map((s) => (
                   <div key={s.id}>
                     <div className="mb-1 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">{s.label}</span>
+                      <span className="text-slate-400">
+                        {s.label}
+                        <span className="ml-1 text-slate-600">{s.enLabel}</span>
+                      </span>
                       <span className="font-semibold tabular-nums text-slate-200">
                         {s.score}
                       </span>
@@ -198,20 +241,140 @@ export function OutputDashboard({
             </div>
           </div>
 
-          {/* 亮点 */}
-          <div className="panel animate-fade-up p-5" style={{ animationDelay: '120ms' }}>
+          {/* 四大胜任力域 */}
+          <div className="panel p-5" style={{ animationDelay: '100ms' }}>
+            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
+              <Scale className="h-5 w-5 text-blue-400" />
+              四大胜任力域评分
+              <span className="text-xs font-normal text-slate-600">
+                · 综合分 = Σ 域得分 × 固定权重
+              </span>
+            </h3>
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {assessment.domainScores.map((d) => {
+                const style = DOMAIN_STYLE[d.id]
+                return (
+                  <div
+                    key={d.id}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-[13px] font-semibold text-slate-100">
+                          {d.label}
+                        </span>
+                        <span className="ml-2 text-[10px] text-slate-600">
+                          {d.enLabel}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className={`chip border ${style.chip}`}>
+                          权重 {d.weight}%
+                        </span>
+                        <span className="text-lg font-bold tabular-nums text-white">
+                          {d.score}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${style.bar}`}
+                        style={{
+                          width: `${d.score}%`,
+                          transition: 'width 1s cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-500">
+                        置信度 {Math.round(d.confidence * 100)}% ·{' '}
+                        {confidenceLabel(d.confidence)}
+                      </span>
+                    </div>
+                    <p className="mt-2 border-t border-white/[0.05] pt-2 text-[12px] leading-relaxed text-slate-400">
+                      {d.rationale}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 行为证据链 */}
+          <div className="panel p-5" style={{ animationDelay: '140ms' }}>
+            <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
+              <Link2 className="h-5 w-5 text-cyan-400" />
+              行为证据链 Evidence
+              <span className="text-xs font-normal text-slate-600">
+                · 共 {assessment.evidence.length} 条 · 先取证、后打分
+              </span>
+            </h3>
+            <p className="mb-4 text-xs text-slate-500">
+              每条证据均来自简历原文，并映射到具体胜任力；强度（0-5）与置信度共同决定评分。
+            </p>
+            {assessment.evidence.length > 0 ? (
+              <div className="grid gap-2.5 md:grid-cols-2">
+                {assessment.evidence.map((e) => {
+                  const style = DOMAIN_STYLE[e.domain]
+                  return (
+                    <div
+                      key={e.id}
+                      className="flex gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5"
+                    >
+                      <span className="mt-0.5 shrink-0 font-mono text-[10px] font-semibold text-slate-600">
+                        {e.id}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="rounded-lg border-l-2 border-cyan-500/40 bg-cyan-500/[0.06] px-3 py-2 text-[12px] leading-relaxed text-slate-300">
+                          “{e.rawText}”
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <span className={`chip border ${style.chip}`}>
+                            {e.competency}
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                            强度
+                            <span className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <span
+                                  key={n}
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    n <= Math.round(e.strength)
+                                      ? style.dot
+                                      : 'bg-white/10'
+                                  }`}
+                                />
+                              ))}
+                            </span>
+                            <span className="ml-0.5 tabular-nums">{e.strength}</span>
+                          </span>
+                          <span className="text-[10px] tabular-nums text-slate-600">
+                            置信 {Math.round(e.confidence * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-xs text-amber-200/80">
+                模型未返回结构化证据（可能简历信息过少），本次结论置信度较低，请以面试验证为准。
+              </p>
+            )}
+          </div>
+
+          {/* 核心优势 */}
+          <div className="panel p-5" style={{ animationDelay: '180ms' }}>
             <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
               <BadgeCheck className="h-5 w-5 text-emerald-400" />
               核心优势 Highlights
-              <span className="text-xs font-normal text-slate-600">
-                · 简历中 3 个最强匹配证据
-              </span>
             </h3>
             <div className="grid gap-3 md:grid-cols-3">
               {assessment.highlights.map((item, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 transition hover:bg-emerald-500/[0.09]"
+                  className="flex flex-col rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 transition hover:bg-emerald-500/[0.09]"
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-500/20 text-[11px] font-bold text-emerald-300">
@@ -222,21 +385,73 @@ export function OutputDashboard({
                     </span>
                   </div>
                   <p className="text-[13px] leading-relaxed text-slate-200">
-                    {item}
+                    {item.evidence}
                   </p>
+                  {item.whyItMatters && (
+                    <p className="mt-2.5 border-t border-emerald-500/15 pt-2 text-[11px] leading-relaxed text-emerald-200/70">
+                      <span className="font-medium">为何重要：</span>
+                      {item.whyItMatters}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Gap Analysis */}
+          <div className="panel p-5" style={{ animationDelay: '220ms' }}>
+            <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
+              <Target className="h-5 w-5 text-indigo-400" />
+              Gap 分析：岗位要求 vs 候选人能力
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-emerald-300">
+                  <BadgeCheck className="h-4 w-4" />
+                  优势 Strengths
+                </div>
+                <ul className="space-y-2">
+                  {assessment.gapAnalysis.strengths.map((s, i) => (
+                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-slate-300">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
+                <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-amber-300">
+                  <TrendingDown className="h-4 w-4" />
+                  差距 Gaps
+                </div>
+                <ul className="space-y-2">
+                  {assessment.gapAnalysis.gaps.map((g, i) => (
+                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-slate-300">
+                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                      {g}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.07] p-4">
+              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-indigo-300" />
+              <div>
+                <div className="mb-1 text-[12px] font-semibold text-indigo-200">
+                  Hiring Recommendation
+                </div>
+                <p className="text-[13px] leading-relaxed text-slate-200">
+                  {assessment.gapAnalysis.recommendation}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* 风险 */}
-          <div className="panel animate-fade-up p-5" style={{ animationDelay: '180ms' }}>
+          <div className="panel p-5" style={{ animationDelay: '260ms' }}>
             <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
               <ShieldAlert className="h-5 w-5 text-amber-400" />
               潜在风险与待核实疑点 Risks
-              <span className="text-xs font-normal text-slate-600">
-                · 建议在面试中重点验证
-              </span>
             </h3>
             <div className="grid gap-3 md:grid-cols-2">
               {assessment.risks.map((risk, i) => {
@@ -275,46 +490,51 @@ export function OutputDashboard({
             </div>
           </div>
 
-          {/* STAR 提问库 */}
-          <div
-            className="panel animate-fade-up p-5"
-            style={{ animationDelay: '240ms' }}
-          >
+          {/* BEI/STAR 提问库 */}
+          <div className="panel p-5" style={{ animationDelay: '300ms' }}>
             <h3 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
               <MessagesSquare className="h-5 w-5 text-blue-400" />
-              STAR 定制化行为面试提问库
+              BEI 行为面试提问库
             </h3>
             <p className="mb-5 text-xs text-slate-500">
-              基于候选人项目经历与简历疑点生成，按 Situation → Task → Action
-              → Result 结构引导回答
+              由胜任力证据缺口 / 高分项 / 适配风险触发，按 Situation → Task →
+              Action → Result 结构引导回答
             </p>
             <div className="space-y-4">
-              {assessment.questions.map((q, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 pl-5 transition hover:border-blue-500/30"
-                >
-                  <span className="absolute left-0 top-4 h-[calc(100%-2rem)] w-[3px] rounded-r bg-gradient-to-b from-blue-500 to-indigo-500" />
-                  <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-300">
-                      Q{i + 1}
-                    </span>
-                    <span className="chip border border-violet-500/30 bg-violet-500/10 text-violet-300">
-                      {q.dimension}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-slate-100">
-                    {q.question}
-                  </p>
-                  <div className="mt-3 flex gap-2 rounded-lg border border-white/[0.06] bg-ink-950/50 px-3 py-2.5">
-                    <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                    <p className="text-xs leading-relaxed text-slate-400">
-                      <span className="font-medium text-slate-300">追问建议：</span>
-                      {q.followUp}
+              {assessment.questions.map((q, i) => {
+                const style = DOMAIN_STYLE[q.domain]
+                return (
+                  <div
+                    key={i}
+                    className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 pl-5 transition hover:border-blue-500/30"
+                  >
+                    <span className="absolute left-0 top-4 h-[calc(100%-2rem)] w-[3px] rounded-r bg-gradient-to-b from-blue-500 to-indigo-500" />
+                    <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-300">
+                        Q{i + 1}
+                      </span>
+                      <span className={`chip border ${style.chip}`}>
+                        {q.competency}
+                      </span>
+                      {q.reason && (
+                        <span className="chip border border-white/10 bg-white/[0.04] text-slate-400">
+                          {q.reason}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-slate-100">
+                      {q.question}
                     </p>
+                    <div className="mt-3 flex gap-2 rounded-lg border border-white/[0.06] bg-ink-950/50 px-3 py-2.5">
+                      <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                      <p className="text-xs leading-relaxed text-slate-400">
+                        <span className="font-medium text-slate-300">追问建议：</span>
+                        {q.followUp}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
@@ -333,22 +553,23 @@ function EmptyState() {
         <div className="absolute -inset-3 -z-10 rounded-full bg-blue-500/10 blur-2xl" />
       </div>
       <h3 className="text-base font-semibold text-white">
-        等待生成第一份评估报告
+        等待生成第一份胜任力评估报告
       </h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-        在左侧粘贴 JD 与候选人简历、勾选评估维度后点击「生成智能评估报告」；
-        也可以先「加载示例数据」快速体验。
+        在左侧粘贴 JD 与候选人简历（或上传 PDF / Word）后点击生成；引擎会先抽取行为证据，再映射胜任力并加权评分。
       </p>
-      <div className="mt-8 grid w-full max-w-lg gap-3 sm:grid-cols-3">
+      <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-4">
         {[
-          { step: '01', text: '解析 JD 与简历' },
-          { step: '02', text: '胜任力模型评分' },
-          { step: '03', text: '生成 STAR 提问' },
+          { step: '01', text: '证据抽取', icon: FileSearch },
+          { step: '02', text: '胜任力映射', icon: GitBranch },
+          { step: '03', text: '加权评分', icon: Scale },
+          { step: '04', text: 'BEI 出题', icon: MessagesSquare },
         ].map((s) => (
           <div
             key={s.step}
             className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-4"
           >
+            <s.icon className="mx-auto mb-1.5 h-4 w-4 text-blue-400/80" />
             <div className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-sm font-bold text-transparent">
               {s.step}
             </div>
@@ -373,7 +594,7 @@ function LoadingSkeleton() {
             <div className="skeleton h-4 w-2/3" />
             <div className="flex items-center gap-2 pt-2 text-xs text-blue-300/80">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              AI 正在比对岗位要求与候选人证据…
+              正在抽取行为证据并映射胜任力…
             </div>
           </div>
         </div>
@@ -382,26 +603,18 @@ function LoadingSkeleton() {
           <div className="skeleton mx-auto h-[230px] w-[230px] rounded-full opacity-40" />
         </div>
       </div>
-      <div className="panel space-y-3 p-5">
-        <div className="skeleton h-4 w-40" />
-        <div className="grid gap-3 md:grid-cols-3">
-          {[0, 1, 2].map((i) => (
+      <div className="panel p-5">
+        <div className="skeleton mb-4 h-4 w-40" />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
             <div key={i} className="space-y-2 rounded-xl border border-white/[0.06] p-4">
-              <div className="skeleton h-5 w-16" />
+              <div className="skeleton h-4 w-2/3" />
+              <div className="skeleton h-1.5 w-full" />
               <div className="skeleton h-3 w-full" />
               <div className="skeleton h-3 w-5/6" />
             </div>
           ))}
         </div>
-      </div>
-      <div className="panel space-y-3 p-5">
-        <div className="skeleton h-4 w-32" />
-        {[0, 1].map((i) => (
-          <div key={i} className="space-y-2 rounded-xl border border-white/[0.06] p-4">
-            <div className="skeleton h-3.5 w-full" />
-            <div className="skeleton h-3.5 w-4/5" />
-          </div>
-        ))}
       </div>
     </div>
   )
