@@ -1,0 +1,29 @@
+{
+  "name": "ai-talent-copilot",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI Talent Copilot (Psychology & Sourcing Edition) - HR 智能招聘辅助系统",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "mammoth": "^1.8.0",
+    "pdfjs-dist": "^4.8.69",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "latest",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "latest"
+  }
+}

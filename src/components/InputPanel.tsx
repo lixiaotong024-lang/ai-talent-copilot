@@ -1,0 +1,330 @@
+import { useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  Briefcase,
+  Check,
+  Code2,
+  Eraser,
+  FileUp,
+  FileText,
+  FlaskConical,
+  LayoutGrid,
+  Loader2,
+  Megaphone,
+  Palette,
+  Sparkles,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
+import type { CompetencyDimension } from '../types'
+import { JOB_CATEGORIES } from '../lib/constants'
+import { extractResumeText } from '../lib/fileParser'
+import type { LucideIcon } from 'lucide-react'
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  tech: Code2,
+  product: LayoutGrid,
+  operation: TrendingUp,
+  hr: Users,
+  market: Megaphone,
+  design: Palette,
+  general: Briefcase,
+}
+
+interface InputPanelProps {
+  jd: string
+  cv: string
+  onJdChange: (value: string) => void
+  onCvChange: (value: string) => void
+  categoryId: string
+  onCategoryChange: (id: string) => void
+  dimensions: CompetencyDimension[]
+  selectedDimIds: string[]
+  onToggleDim: (id: string) => void
+  loading: boolean
+  onGenerate: () => void
+  onLoadDemo: () => void
+  onClear: () => void
+}
+
+export function InputPanel({
+  jd,
+  cv,
+  onJdChange,
+  onCvChange,
+  categoryId,
+  onCategoryChange,
+  dimensions,
+  selectedDimIds,
+  onToggleDim,
+  loading,
+  onGenerate,
+  onLoadDemo,
+  onClear,
+}: InputPanelProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [parsing, setParsing] = useState(false)
+  const [parsedFile, setParsedFile] = useState('')
+  const [parseError, setParseError] = useState('')
+  const [dragging, setDragging] = useState(false)
+
+  const canGenerate =
+    !loading &&
+    !parsing &&
+    jd.trim().length >= 20 &&
+    cv.trim().length >= 20 &&
+    selectedDimIds.length > 0
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return
+    setParseError('')
+    setParsing(true)
+    try {
+      const result = await extractResumeText(file)
+      onCvChange(result.text)
+      setParsedFile(`${result.fileName} · ${result.fileType} · ${result.text.length} 字`)
+    } catch (err) {
+      setParsedFile('')
+      setParseError(err instanceof Error ? err.message : '文件解析失败')
+    } finally {
+      setParsing(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  return (
+    <aside className="panel flex flex-col gap-5 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-white">候选人信息输入</h2>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onLoadDemo}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20 disabled:opacity-50"
+            title="按当前岗位类别加载示例 JD 与简历"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            加载示例数据
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={loading}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-500 transition hover:bg-white/5 hover:text-slate-300 disabled:opacity-50"
+            title="清空全部输入"
+          >
+            <Eraser className="h-3.5 w-3.5" />
+            清空
+          </button>
+        </div>
+      </div>
+
+      {/* 岗位类别 */}
+      <section>
+        <span className="field-label mb-2.5">
+          <Briefcase className="h-3.5 w-3.5 text-sky-400" />
+          岗位类别
+          <span className="text-slate-600">· 评估维度随类别自动切换</span>
+        </span>
+        <div className="grid grid-cols-4 gap-1.5">
+          {JOB_CATEGORIES.map((cat) => {
+            const Icon = CATEGORY_ICONS[cat.id] ?? Briefcase
+            const active = cat.id === categoryId
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onCategoryChange(cat.id)}
+                title={cat.description}
+                className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2 transition ${
+                  active
+                    ? 'border-sky-500/50 bg-sky-500/[0.1] text-white'
+                    : 'border-white/[0.08] bg-white/[0.02] text-slate-400 hover:border-white/20 hover:text-slate-200'
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${active ? 'text-sky-400' : ''}`} />
+                <span className="text-[11px] font-medium leading-none">
+                  {cat.label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600">
+          {JOB_CATEGORIES.find((c) => c.id === categoryId)?.description}
+        </p>
+      </section>
+
+      {/* JD */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <label htmlFor="jd-input" className="field-label">
+            <FileText className="h-3.5 w-3.5 text-blue-400" />
+            岗位描述（JD）
+          </label>
+          <span className="text-[11px] tabular-nums text-slate-600">
+            {jd.length} 字
+          </span>
+        </div>
+        <textarea
+          id="jd-input"
+          className="input-base min-h-[150px]"
+          placeholder="请粘贴目标岗位的 Job Description，包括岗位职责、任职要求与加分项…"
+          value={jd}
+          onChange={(e) => onJdChange(e.target.value)}
+        />
+      </section>
+
+      {/* CV */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <label htmlFor="cv-input" className="field-label">
+            <FileText className="h-3.5 w-3.5 text-indigo-400" />
+            候选人简历（CV）
+          </label>
+          <span className="text-[11px] tabular-nums text-slate-600">
+            {cv.length} 字
+          </span>
+        </div>
+
+        <div
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragging(false)
+            void handleFile(e.dataTransfer.files?.[0])
+          }}
+          className={`mb-2 flex items-center justify-between gap-3 rounded-xl border border-dashed px-3.5 py-2.5 transition ${
+            dragging
+              ? 'border-blue-400 bg-blue-500/10'
+              : 'border-white/15 bg-ink-950/40 hover:border-white/25'
+          }`}
+        >
+          <div className="flex min-w-0 items-center gap-2.5 text-xs text-slate-400">
+            {parsing ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-400" />
+            ) : (
+              <FileUp className="h-4 w-4 shrink-0 text-slate-500" />
+            )}
+            <span className="truncate">
+              {parsing
+                ? '正在本地解析简历文件…'
+                : parsedFile
+                  ? parsedFile
+                  : '上传 PDF / Word（.docx）自动提取文本，或拖拽至此'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={parsing}
+            className="shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
+          >
+            选择文件
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={(e) => void handleFile(e.target.files?.[0])}
+          />
+        </div>
+        {parseError && (
+          <p className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-300">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {parseError}
+          </p>
+        )}
+        <textarea
+          id="cv-input"
+          className="input-base min-h-[180px]"
+          placeholder="粘贴简历纯文本，或通过上方按钮上传文件自动解析…"
+          value={cv}
+          onChange={(e) => {
+            onCvChange(e.target.value)
+            setParsedFile('')
+          }}
+        />
+      </section>
+
+      {/* 维度选择 */}
+      <section>
+        <span className="field-label mb-2.5">
+          <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+          评估维度
+          <span className="text-slate-600">· 基于组织心理学胜任力模型</span>
+        </span>
+        <div className="grid gap-2">
+          {dimensions.map((dim) => {
+            const checked = selectedDimIds.includes(dim.id)
+            return (
+              <button
+                key={dim.id}
+                type="button"
+                onClick={() => onToggleDim(dim.id)}
+                className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-left transition ${
+                  checked
+                    ? 'border-blue-500/50 bg-blue-500/[0.08]'
+                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'
+                }`}
+              >
+                <span
+                  className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition ${
+                    checked
+                      ? 'border-blue-500 bg-blue-600'
+                      : 'border-slate-600 bg-transparent'
+                  }`}
+                >
+                  {checked && <Check className="h-3 w-3 text-white" />}
+                </span>
+                <span>
+                  <span
+                    className={`block text-[13px] font-medium ${
+                      checked ? 'text-white' : 'text-slate-300'
+                    }`}
+                  >
+                    {dim.label}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">
+                    {dim.description}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* 生成按钮 */}
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={!canGenerate}
+        className="btn-primary mt-auto w-full !py-3 text-[15px]"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            正在生成智能评估报告…
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-5 w-5" />
+            生成智能评估报告
+          </>
+        )}
+      </button>
+      {!loading && (jd.trim().length < 20 || cv.trim().length < 20) && (
+        <p className="-mt-3 text-center text-[11px] text-slate-600">
+          请填写 JD 与简历（各至少 20 字）后开始评估
+        </p>
+      )}
+    </aside>
+  )
+}
